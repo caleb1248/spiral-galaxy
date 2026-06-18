@@ -1,0 +1,21 @@
+{
+  "name": "spiral-galaxy-composition",
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "vite": "^8.0.13"
+  },
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build"
+  },
+  "type": "module",
+  "dependencies": {
+    "@oxc-parser/binding-wasm32-wasi": "https://registry.npmjs.org/@oxc-parser/binding-wasm32-wasi/-/binding-wasm32-wasi-0.135.0.tgz",
+    "@tonejs/midi": "^2.0.28",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "scribbletune": "^5.5.5",
+    "tone": "^15.1.22"
+  }
+}

@@ -3,7 +3,6 @@
 
 import { clip, midi } from 'scribbletune';
 import * as Tone from 'tone';
-import { Midi } from '@tonejs/midi';
 
 const numberToNoteMap = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
 

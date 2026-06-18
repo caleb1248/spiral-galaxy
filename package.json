@@ -11,7 +11,6 @@
   },
   "type": "module",
   "dependencies": {
-    "@oxc-parser/binding-wasm32-wasi": "https://registry.npmjs.org/@oxc-parser/binding-wasm32-wasi/-/binding-wasm32-wasi-0.135.0.tgz",
     "@tonejs/midi": "^2.0.28",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

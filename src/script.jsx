@@ -72,9 +72,9 @@ const sliderDefs = [
   {
     key: 'p',
     label: 'Number of points',
-    min: 100,
+    min: 20,
     max: 1000,
-    step: 50,
+    step: 20,
     value: 200,
     digits: 0,
     category: 'Variables',
@@ -114,7 +114,7 @@ const sliderDefs = [
     key: 'speed',
     label: 'Speed (points / second)',
     min: 1,
-    max: 128,
+    max: 64,
     step: 1,
     value: 16,
     digits: 0,
@@ -149,6 +149,13 @@ const sliderDefs = [
     value: 5,
     digits: 0,
     category: 'Playback',
+  },
+  {
+    key: 'doubleNote',
+    label: 'Play both spirals',
+    category: 'Playback',
+    value: false,
+    switch: true,
   },
 ];
 
@@ -652,7 +659,7 @@ function advanceHighlight() {
   const n = data.points.length;
   let next = (highlightedIndex + 1) % n;
 
-  playNote(next, state.speed);
+  playNote(next, state.speed, state.doubleNote);
 
   if (selectedMode() === 'all') {
     highlightedIndex = next;
@@ -738,21 +745,26 @@ function computeNotes() {
   // Calculate the highest note to determine scale
   let highestNote = data.points[0]?.R1 || 0;
 
-  const mappedNotes = Array(data.points.length);
+  const mappedArm1 = Array(data.points.length);
+  const mappedArm2 = Array(data.points.length);
 
   for (let i = 0; i < data.points.length; i++) {
     // not i = 1 because we still need to copy the points
-    mappedNotes[i] = data.points[i].R1;
+    mappedArm1[i] = data.points[i].R1;
+    mappedArm2[i] = data.points[i].R2;
     if (data.points[i].R1 > highestNote) highestNote = data.points[i].R1;
+    if (data.points[i].R2 > highestNote) highestNote = data.points[i].R2;
   }
 
-  // scale notes to fit in the desired octave range
-  for (let i = 0; i < mappedNotes.length; i++) {
-    const norm = (mappedNotes[i] - min) / diff;
-    mappedNotes[i] = Math.round(norm * octaveDiff * 12) + Math.round(+state.low * 12);
+  for (let i = 0; i < mappedArm1.length; i++) {
+    const norm1 = (mappedArm1[i] - min) / diff;
+    const norm2 = (mappedArm2[i] - min) / diff;
+
+    mappedArm1[i] = Math.round(norm1 * octaveDiff * 12) + Math.round(+state.low * 12);
+    mappedArm2[i] = Math.round(norm2 * octaveDiff * 12) + Math.round(+state.low * 12);
   }
 
-  setNotes(mappedNotes);
+  setNotes(mappedArm1, mappedArm2);
 }
 
 // React UI state plumbing (watch/status live in React; canvas draw live here)
@@ -866,24 +878,44 @@ function SpiralControlsPanel() {
       <div className="control-group-body">
         {defs.map((def) => {
           const v = sliders[def.key];
+          const isSwitch = !!def.switch;
           return (
-            <div className="control" key={def.key}>
+            <div className={isSwitch ? 'control control-switch' : 'control'} key={def.key}>
               <label htmlFor={`slider-${def.key}`}>{def.label}</label>
-              <span className="value">{formatValue(v, def.digits)}</span>
-              <input
-                type="range"
-                id={`slider-${def.key}`}
-                min={String(def.min)}
-                max={String(def.max)}
-                step={String(def.step)}
-                value={String(v)}
-                onInput={(e) => {
-                  const next = +e.target.value;
-                  setSliders((prev) => ({ ...prev, [def.key]: next }));
-                  state[def.key] = next;
-                  scheduleRecompute();
-                }}
-              />
+              {!isSwitch && <span className="value">{formatValue(v, def.digits)}</span>}
+              {isSwitch ? (
+                <label className="switch" htmlFor={`slider-${def.key}`}>
+                  <input
+                    type="checkbox"
+                    id={`slider-${def.key}`}
+                    checked={!!v}
+                    onChange={(e) => {
+                      const next = e.target.checked;
+                      setSliders((prev) => ({ ...prev, [def.key]: next }));
+                      state[def.key] = next;
+                      scheduleRecompute();
+                    }}
+                  />
+                  <span className="switch-track" aria-hidden="true">
+                    <span className="switch-thumb" />
+                  </span>
+                </label>
+              ) : (
+                <input
+                  type="range"
+                  id={`slider-${def.key}`}
+                  min={String(def.min)}
+                  max={String(def.max)}
+                  step={String(def.step)}
+                  value={String(v)}
+                  onInput={(e) => {
+                    const next = +e.target.value;
+                    setSliders((prev) => ({ ...prev, [def.key]: next }));
+                    state[def.key] = next;
+                    scheduleRecompute();
+                  }}
+                />
+              )}
             </div>
           );
         })}

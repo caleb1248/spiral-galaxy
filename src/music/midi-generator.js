@@ -71,11 +71,16 @@ let scheduled = false;
 
 Tone.getContext().lookAhead = 0;
 
-let notes = [];
+let arm1 = [];
+let arm2 = [];
 
-/** @param {number[]} newNotes */
-export function setNotes(newNotes) {
-  notes = newNotes;
+/**
+ * @param {number[], number[]} arm1
+ * @param {number[], number[]} arm2
+ */
+export function setNotes(newArm1, newArm2) {
+  arm1 = newArm1;
+  arm2 = newArm2;
 }
 
 /**
@@ -83,11 +88,27 @@ export function setNotes(newNotes) {
  * @param {number} index
  * @param {number} speed points/second
  */
-export function playNote(index, speed) {
-  // const note = convertNote(notes[index]);
+export function playNote(index, speed, doubleSpiral = false) {
+  if (!started) {
+    Tone.start();
+    started = true;
+  }
+
+  _playNote(index, speed, 1);
+  if (doubleSpiral) _playNote(arm2.length - 1 - index, speed, 2);
+}
+
+/**
+ *
+ * @param {number} index
+ * @param {number} speed
+ * @param {(0|1)} arm
+ */
+function _playNote(index, speed, arm = 1) {
+  const notes = arm === 1 ? arm1 : arm2;
   const note = convertNoteChromatic(notes[index]);
-  console.log(notes[index], note, speed);
-  console.log(notes);
-  console.log(`Playing note: ${note} at index ${index}`);
+  // console.log(notes[index], note, speed);
+  // console.log(notes);
+  // console.log(`Playing note: ${note} at index ${index}`);
   piano.triggerAttackRelease(note, 1 / speed, Tone.now());
 }

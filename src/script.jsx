@@ -82,7 +82,7 @@ const sliderDefs = [
 
   {
     key: 's_min',
-    label: 's_min (min circle area)',
+    label: 'Minimum circle area',
     min: 0.25,
     max: 80,
     step: 0.25,
@@ -92,7 +92,7 @@ const sliderDefs = [
   },
   {
     key: 's_max',
-    label: 's_max (max circle area)',
+    label: 'Maximum circle area',
     min: 1,
     max: 320,
     step: 1,
@@ -102,7 +102,7 @@ const sliderDefs = [
   },
   {
     key: 'R_d',
-    label: 'R_d (size scale length)',
+    label: 'Circle size',
     min: 0.01,
     max: 5.0,
     step: 0.01,

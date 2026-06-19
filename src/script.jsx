@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import './style.css';
 
 // test the midi generator and player
 import { setNotes, playNote } from './music/midi-generator';

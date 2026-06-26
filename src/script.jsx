@@ -157,6 +157,13 @@ const sliderDefs = [
     value: false,
     switch: true,
   },
+  {
+    key: 'contrary',
+    label: 'Contrary motion',
+    category: 'Playback',
+    value: false,
+    switch: true,
+  },
 ];
 
 const initialState = Object.fromEntries(sliderDefs.map((def) => [def.key, def.value]));
@@ -228,7 +235,7 @@ function radiusAtPhi(phi, A, B, N) {
 }
 
 function computeT(A, B, N, C, Ct, validPhis, validRhos) {
-  const tipTurn = clamp(Ct, 1e-9, Math.max(C - 1e-9, 1e-9));
+  const tipTurn = clamp(0, 1e-9, Math.max(C - 1e-9, 1e-9));
   const phiTip = TWO_PI * tipTurn;
   const rTip = radiusAtPhi(phiTip, A, B, N);
 
@@ -459,6 +466,13 @@ function render() {
   drawScaffold(toCanvas, data.points, 'rgba(160, 170, 185, 0.45)', 'rgba(230, 237, 243, 0.35)');
   drawPoints(toCanvas, data.points);
   drawHighlight(toCanvas, data.points[highlightedIndex]);
+
+  if (state.doubleNote) {
+    let highlightedArm2Index = state.contrary
+      ? data.points.length - 1 - highlightedIndex
+      : highlightedIndex;
+    drawHighlight(toCanvas, data.points[highlightedArm2Index], 2);
+  }
 }
 
 function drawBackground(width, height) {
@@ -589,15 +603,15 @@ function drawPoints(toCanvas, points) {
     const r1 = Math.sqrt(markerArea(pt.R1) / Math.PI);
     const r2 = Math.sqrt(markerArea(pt.R2) / Math.PI);
 
-    drawCircle(x1, y1, r1, pt.eta1 >= 0 ? pos1 : neg1, null, 0.54);
-    drawCircle(x2, y2, r2, pt.eta2 >= 0 ? pos2 : neg2, null, 0.42);
+    drawCircle(x1, y1, r1, pt.eta1 >= 0 ? pos1 : neg1, null, 1);
+    drawCircle(x2, y2, r2, pt.eta2 >= 0 ? pos2 : neg2, null, 1);
   }
 }
 
-function drawHighlight(toCanvas, pt) {
+function drawHighlight(toCanvas, pt, arm = 1) {
   if (!pt) return;
-  const [x, y] = toCanvas(pt.x1, pt.y1);
-  const baseRadius = Math.sqrt(markerArea(pt.R1) / Math.PI);
+  const [x, y] = toCanvas(arm === 1 ? pt.x1 : pt.x2, arm === 1 ? pt.y1 : pt.y2);
+  const baseRadius = Math.sqrt(markerArea(arm === 1 ? pt.R1 : pt.R2) / Math.PI);
   const pulse = playing ? 1.0 + 0.25 * Math.sin(performance.now() / 120) : 1.0;
   const r = Math.max(baseRadius + 4, baseRadius * 2.0) * pulse;
 
@@ -764,6 +778,8 @@ function computeNotes() {
     mappedArm2[i] = Math.round(norm2 * octaveDiff * 12) + Math.round(+state.low * 12);
   }
 
+  if (state.contrary) mappedArm2.reverse();
+
   setNotes(mappedArm1, mappedArm2);
 }
 
@@ -893,6 +909,9 @@ function SpiralControlsPanel() {
                       const next = e.target.checked;
                       setSliders((prev) => ({ ...prev, [def.key]: next }));
                       state[def.key] = next;
+
+                      if (def.key === 'doubleNote') globalThis.doubleNote = next;
+
                       scheduleRecompute();
                     }}
                   />

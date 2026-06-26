@@ -2,6 +2,7 @@
 // For now we will just write some basic patterns.
 
 import { clip, midi } from 'scribbletune';
+import { mergeTracks } from './merge-tracks';
 import * as Tone from 'tone';
 
 const numberToNoteMap = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
@@ -14,7 +15,7 @@ function convertNote(/** @type {number} */ number) {
   return `${baseNote}${octave}`;
 }
 
-function convertNoteChromatic(/** @type {number} */ number) {
+function convertNoteChromatic(/** @type {number} */ number, index = -1) {
   const chromaticScale = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
   let baseNote = chromaticScale[Math.floor(number % 12)];
   const octave = Math.floor(number / 12);
@@ -25,32 +26,47 @@ function removeCommasAndSpaces(/** @type {string} */ str) {
   return str.replace(/[, ]/g, '');
 }
 
-// function convertMelody(/** @type {string} */ melody) {
-//   let notes = [];
-//   let pattern = '';
-//   let currentIndex = 0;
-//   const numbers = melody.matchAll(/\d+(\.\d+)?/g);
+function exportMidi() {
+  function getPattern(/** @type {number[]} */ arm) {
+    let pattern = '[xxxx]'.repeat(Math.floor(arm.length / 4));
 
-//   for (const number of numbers) {
-//     notes.push(convertNote(parseFloat(number[0])));
-//     pattern += removeCommasAndSpaces(melody.slice(currentIndex, number.index)) + 'x';
-//     currentIndex = number.index + number[0].length;
-//   }
+    const leftover = arm.length % 4;
+    if (leftover > 0) {
+      pattern += `[${'x'.repeat(leftover)}${'-'.repeat(4 - leftover)}]`;
+    }
 
-//   pattern += removeCommasAndSpaces(melody.slice(currentIndex));
+    return pattern;
+  }
 
-//   console.log(notes);
-//   console.log(pattern);
+  const tracks = [
+      arm1.map((note) => ({ note, duration: 0.25 })),
+      arm2.map((note) => ({ note, duration: 0.25 })),
+    ],
+    names = ['Arm 1', 'Arm 2'],
+    channels = [0, 1];
 
-//   return { notes, pattern };
-// }
+  if (!globalThis.doubleNote) {
+    tracks.pop();
+    names.pop();
+    channels.pop();
+  }
 
-// // We will use a simple hard-coded melody for now.
+  const midiData = mergeTracks(tracks, {
+    bpm: 120,
+    names: ['Arm 1', 'Arm 2'],
+    channels: [0, 1],
+  });
 
-// const sampleClip = clip({ ...convertMelody('1, 2, 3.5, 4, 5, 4, 3.5, [3.5, 4, 2], 1___') });
+  const midiFile = new File([new Uint8Array(midiData.toArray())], 'galaxy.mid', {
+    type: 'audio/midi',
+  });
 
-// const midiUrl = midi(sampleClip);
-// const midiData = await Midi.fromUrl(midiUrl);
+  const url = URL.createObjectURL(midiFile);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'galaxy.mid';
+  a.click();
+}
 
 const piano = new Tone.Sampler({
   urls: {
@@ -95,7 +111,7 @@ export function playNote(index, speed, doubleSpiral = false) {
   }
 
   _playNote(index, speed, 1);
-  if (doubleSpiral) _playNote(arm2.length - 1 - index, speed, 2);
+  if (doubleSpiral) _playNote(index, speed, 2);
 }
 
 /**
@@ -112,3 +128,5 @@ function _playNote(index, speed, arm = 1) {
   // console.log(`Playing note: ${note} at index ${index}`);
   piano.triggerAttackRelease(note, 1 / speed, Tone.now());
 }
+
+document.getElementById('export-midi').addEventListener('click', exportMidi);

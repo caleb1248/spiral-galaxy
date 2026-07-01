@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { sliderDefs, state } from './state';
 import './style.css';
 
 // test the midi generator and player
@@ -8,167 +9,9 @@ import { setNotes, playNote } from './music/midi-generator';
 const TWO_PI = 2 * Math.PI;
 const EPS = 1e-12;
 
-const sliderDefs = [
-  {
-    key: 'A',
-    label: 'Arm offset',
-    min: 0.1,
-    max: 2.0,
-    step: 0.01,
-    value: 0.8,
-    digits: 3,
-    category: 'Variables',
-  },
-  {
-    key: 'B',
-    label: 'Scale factor',
-    min: 1.1,
-    max: 10.0,
-    step: 0.1,
-    value: 2.0,
-    digits: 3,
-    category: 'Variables',
-  },
-  {
-    key: 'N',
-    label: 'Windings',
-    min: 1,
-    max: 50,
-    step: 1,
-    value: 16,
-    digits: 0,
-    category: 'Variables',
-  },
-  {
-    key: 'C',
-    label: 'Angular coverage',
-    min: 0.1,
-    max: 2.0,
-    step: 0.01,
-    value: 0.58,
-    digits: 3,
-    category: 'Variables',
-  },
-  {
-    key: 'd',
-    label: 'Noise std',
-    min: 0.0,
-    max: 0.5,
-    step: 0.001,
-    value: 0.075,
-    digits: 4,
-    category: 'Variables',
-  },
-  {
-    key: 'C_t',
-    label: 'Transition',
-    min: 0.0,
-    max: 1.0,
-    step: 0.0001,
-    value: 0.0573,
-    digits: 4,
-    category: 'Variables',
-  },
-  {
-    key: 'p',
-    label: 'Number of points',
-    min: 20,
-    max: 1000,
-    step: 20,
-    value: 200,
-    digits: 0,
-    category: 'Variables',
-  },
-
-  {
-    key: 's_min',
-    label: 'Minimum circle area',
-    min: 0.25,
-    max: 80,
-    step: 0.25,
-    value: 4.0,
-    digits: 2,
-    category: 'Display',
-  },
-  {
-    key: 's_max',
-    label: 'Maximum circle area',
-    min: 1,
-    max: 320,
-    step: 1,
-    value: 20.0,
-    digits: 1,
-    category: 'Display',
-  },
-  {
-    key: 'R_d',
-    label: 'Circle size',
-    min: 0.01,
-    max: 5.0,
-    step: 0.01,
-    value: 0.6,
-    digits: 3,
-    category: 'Display',
-  },
-  {
-    key: 'speed',
-    label: 'Speed (points / second)',
-    min: 1,
-    max: 64,
-    step: 1,
-    value: 16,
-    digits: 0,
-    category: 'Playback',
-  },
-  {
-    key: 'seed',
-    label: 'Random seed',
-    min: 0,
-    max: 1000,
-    step: 1,
-    value: 42,
-    digits: 0,
-    category: 'Variables',
-  },
-  {
-    key: 'low',
-    label: 'lower octave',
-    min: 1,
-    max: 4,
-    step: 1,
-    value: 2,
-    digits: 0,
-    category: 'Playback',
-  },
-  {
-    key: 'hi',
-    label: 'upper octave',
-    min: 3,
-    max: 7,
-    step: 1,
-    value: 5,
-    digits: 0,
-    category: 'Playback',
-  },
-  {
-    key: 'doubleNote',
-    label: 'Play both spirals',
-    category: 'Playback',
-    value: false,
-    switch: true,
-  },
-  {
-    key: 'contrary',
-    label: 'Contrary motion',
-    category: 'Playback',
-    value: false,
-    switch: true,
-  },
-];
-
-const initialState = Object.fromEntries(sliderDefs.map((def) => [def.key, def.value]));
-const state = { ...initialState };
-
+function notePerSecond(tempo, npb) {
+  return (tempo / 60) * npb;
+}
 let data = null;
 let playing = false;
 let highlightedIndex = 0;
@@ -673,7 +516,7 @@ function advanceHighlight() {
   const n = data.points.length;
   let next = (highlightedIndex + 1) % n;
 
-  playNote(next, state.speed, state.doubleNote);
+  playNote(next, notePerSecond(state.tempo, state.npb), state.doubleNote);
 
   if (selectedMode() === 'all') {
     highlightedIndex = next;
@@ -714,7 +557,7 @@ function playLoop(timestamp) {
   const dt = Math.min(0.2, (timestamp - lastTimestamp) / 1000);
   lastTimestamp = timestamp;
 
-  const speed = Math.max(1, Number(state.speed));
+  const speed = Math.max(1, notePerSecond(+state.tempo, state.npb));
   playAccumulator += dt * speed;
 
   let changed = false;
@@ -778,7 +621,9 @@ function computeNotes() {
     mappedArm2[i] = Math.round(norm2 * octaveDiff * 12) + Math.round(+state.low * 12);
   }
 
-  if (state.contrary) mappedArm2.reverse();
+  if (state.contrary) {
+    mappedArm2.reverse();
+  }
 
   setNotes(mappedArm1, mappedArm2);
 }

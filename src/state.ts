@@ -114,7 +114,7 @@ const sliderDefs = [
     key: 'npb',
     label: 'Notes per beat',
     min: 1,
-    max: 6,
+    max: 8,
     step: 1,
     value: 2,
     digits: 0,

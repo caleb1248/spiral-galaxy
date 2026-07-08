@@ -1,10 +1,8 @@
+import './style.css';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { sliderDefs, state } from './state';
-import './style.css';
-
-// test the midi generator and player
-import { setNotes, playNote } from './music/midi-generator';
+import { setNotes, playNote, indicies } from './music/midi-generator';
 
 const TWO_PI = 2 * Math.PI;
 const EPS = 1e-12;
@@ -12,6 +10,7 @@ const EPS = 1e-12;
 function notePerSecond(tempo, npb) {
   return (tempo / 60) * npb;
 }
+
 let data = null;
 let playing = false;
 let highlightedIndex = 0;
@@ -240,6 +239,7 @@ function clamp(v, lo, hi) {
 }
 
 function scheduleRecompute() {
+  if (!data.points[indicies[0][highlightedIndex]]) highlightedIndex = 0;
   if (computeTimer !== null) clearTimeout(computeTimer);
   computeTimer = setTimeout(() => {
     computeTimer = null;
@@ -308,13 +308,10 @@ function render() {
   drawAxis(toCanvas);
   drawScaffold(toCanvas, data.points, 'rgba(160, 170, 185, 0.45)', 'rgba(230, 237, 243, 0.35)');
   drawPoints(toCanvas, data.points);
-  drawHighlight(toCanvas, data.points[highlightedIndex]);
+  drawHighlight(toCanvas, data.points[indicies[0][highlightedIndex]]);
 
   if (state.doubleNote) {
-    let highlightedArm2Index = state.contrary
-      ? data.points.length - 1 - highlightedIndex
-      : highlightedIndex;
-    drawHighlight(toCanvas, data.points[highlightedArm2Index], 2);
+    drawHighlight(toCanvas, data.points[indicies[1][highlightedIndex]], 2);
   }
 }
 
@@ -511,12 +508,13 @@ function acceptsPoint(pt) {
 }
 
 function advanceHighlight() {
-  console.log('Advancing highlight from index', highlightedIndex);
   if (!data || !data.points || data.points.length === 0) return;
-  const n = data.points.length;
+  const n = indicies[0].length;
   let next = (highlightedIndex + 1) % n;
 
-  playNote(next, notePerSecond(state.tempo, state.npb), state.doubleNote);
+  if (!data.points[indicies[0][next]]) next = 0;
+
+  playNote(next, notePerSecond(state.tempo, state.npb));
 
   if (selectedMode() === 'all') {
     highlightedIndex = next;
@@ -524,7 +522,7 @@ function advanceHighlight() {
   }
 
   for (let scanned = 0; scanned < n; scanned++) {
-    const pt = data.points[next];
+    const pt = data.points[indicies[0][next]];
     if (acceptsPoint(pt)) {
       highlightedIndex = next;
       return;
@@ -536,15 +534,15 @@ function advanceHighlight() {
 
 function clampHighlightIndex(index) {
   if (!data || !data.points || data.points.length === 0) return 0;
-  return clamp(index, 0, data.points.length - 1);
+  return clamp(index, 0, indicies[0].length - 1);
 }
 
 function ensureHighlightedPointMatchesMode() {
   if (!data || !data.points || data.points.length === 0) return;
   if (selectedMode() === 'all') return;
-  if (acceptsPoint(data.points[highlightedIndex])) return;
-  for (let k = 0; k < data.points.length; k++) {
-    if (acceptsPoint(data.points[k])) {
+  if (acceptsPoint(data.points[indicies[0][highlightedIndex]])) return;
+  for (let k = 0; k < indicies[0].length; k++) {
+    if (acceptsPoint(data.points[indicies[0][k]])) {
       highlightedIndex = k;
       return;
     }
@@ -621,10 +619,6 @@ function computeNotes() {
     mappedArm2[i] = Math.round(norm2 * octaveDiff * 12) + Math.round(+state.low * 12);
   }
 
-  if (state.contrary) {
-    mappedArm2.reverse();
-  }
-
   setNotes(mappedArm1, mappedArm2);
 }
 
@@ -639,7 +633,7 @@ function updateWatchText() {
     if (!data || !data.points || data.points.length === 0) {
       return { index: '—', R: '—', theta: '—', step: '—', eta: '—' };
     }
-    const pt = data.points[highlightedIndex];
+    const pt = data.points[indicies[0][highlightedIndex]];
     return {
       index: String(pt.i),
       R: formatValue(pt.R1, 6),
@@ -703,6 +697,35 @@ function setPlayingAndSync(value) {
   setUiPlaying(playing);
 }
 
+function computeIndicies() {
+  if (!state.doubleNote) {
+    indicies[0] = Array.from({ length: data.points.length }, (_, i) => i);
+    indicies[1] = [];
+    return;
+  }
+
+  if (!state.contrary) {
+    indicies[0] = Array.from({ length: data.points.length }, (_, i) => i);
+    indicies[1] = Array.from({ length: data.points.length }, (_, i) => i);
+    return;
+  }
+
+  const len = data.points.length;
+
+  if (!state.middle) {
+    indicies[0] = Array.from({ length: len }, (_, i) => len - 1 - i);
+    indicies[1] = Array.from({ length: data.points.length }, (_, i) => i);
+    return;
+  }
+
+  console.log('starting in middle');
+  // start in the middle and go to the end in contrary motion
+  const middle = Math.floor(data.points.length / 2);
+  indicies[0] = Array.from({ length: middle }, (_, i) => middle - 1 - i);
+  indicies[1] = Array.from({ length: data.points.length - middle }, (_, i) => middle + i);
+  console.log('resulting indicies', indicies[0], indicies[1]);
+}
+
 function SpiralControlsPanel() {
   const [sliders, setSliders] = useState(() => ({ ...state }));
   const [highlightMode, setHighlightModeState] = useState(uiStateRef.current.highlightMode);
@@ -755,8 +778,7 @@ function SpiralControlsPanel() {
                       setSliders((prev) => ({ ...prev, [def.key]: next }));
                       state[def.key] = next;
 
-                      if (def.key === 'doubleNote') globalThis.doubleNote = next;
-
+                      computeIndicies();
                       scheduleRecompute();
                     }}
                   />
@@ -919,6 +941,7 @@ root.render(<SpiralControlsPanel />);
 
 data = computeSpiral();
 computeNotes();
+computeIndicies();
 ensureHighlightedPointMatchesMode();
 updateWatchText();
 updateStatusText();

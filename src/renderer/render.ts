@@ -2,6 +2,8 @@ import WebMscore from 'webmscore';
 
 await WebMscore.ready;
 
-export function exportPdf(midiData: Uint8Array) {
-  return WebMscore.load('midi', midiData).then((score) => score.savePdf());
+export async function exportPdf(midiData: Uint8Array) {
+  const score = await WebMscore.load('midi', midiData);
+  (await score.metadata()).title = 'Spiral Galaxy';
+  return score.savePdf();
 }

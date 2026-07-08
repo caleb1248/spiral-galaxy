@@ -19,6 +19,7 @@ function convertNote(number: number) {
 function convertNoteChromatic(number: number) {
   const chromaticScale = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
   let baseNote = chromaticScale[Math.floor(number % 12)];
+  console.log(Math.floor(number % 12), baseNote);
   const octave = Math.floor(number / 12);
   return `${baseNote}${octave}`;
 }
@@ -29,13 +30,13 @@ function removeCommasAndSpaces(str: string) {
 
 function getMidiData() {
   const tracks = [
-      arm1.map((note) => ({ note, duration: 0.25 })),
-      arm2.map((note) => ({ note, duration: 0.25 })),
+      indicies[0].map((i) => ({ note: arm1[i], duration: 1 / +state.npb })),
+      indicies[1].map((i) => ({ note: arm2[i], duration: 1 / +state.npb })),
     ],
     names = ['Arm 1', 'Arm 2'],
     channels = [0, 1];
 
-  if (!(globalThis as any).doubleNote) {
+  if (indicies[1].length === 0) {
     tracks.pop();
     names.pop();
     channels.pop();
@@ -83,19 +84,23 @@ export function setNotes(newArm1: number[], newArm2: number[]) {
  * @param {number} index
  * @param {number} speed points/second
  */
-export function playNote(index: number, speed: number, doubleSpiral = false) {
+export function playNote(index: number, speed: number) {
   if (!started) {
     Tone.start();
     started = true;
   }
 
-  _playNote(index, speed, 1);
-  if (doubleSpiral) _playNote(index, speed, 2);
+  _playNote(indicies[0][index], speed, 1);
+  console.log('arm2', Math.max(...indicies[1]), arm2.length);
+  console.log(indicies[1][index]);
+  if (indicies[1].length > 0) _playNote(indicies[1][index], speed, 2);
 }
 
 function _playNote(index: number, speed: number, arm: 1 | 2 = 1) {
+  console.log(arguments);
   const notes = arm === 1 ? arm1 : arm2;
   const note = convertNoteChromatic(notes[index]);
+  console.log('length check in _playnote', notes.length, index);
   // console.log(notes[index], note, speed);
   // console.log(notes);
   // console.log(`Playing note: ${note} at index ${index}`);
@@ -113,6 +118,7 @@ document.getElementById('export-midi')?.addEventListener('click', () => {
   a.download = 'galaxy.mid';
   a.click();
 });
+
 document.getElementById('export-pdf')?.addEventListener('click', async () => {
   const midiData = getMidiData();
   const pdfData = await exportPdf(midiData);
@@ -130,3 +136,7 @@ document.getElementById('export-pdf')?.addEventListener('click', async () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 });
+
+export const indicies = [[], []] as [number[], number[]];
+
+(globalThis as any).indicies = indicies;

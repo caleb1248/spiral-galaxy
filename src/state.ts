@@ -1,4 +1,4 @@
-const sliderDefs = [
+const extraSliderDefs = [
   {
     key: 'A',
     label: 'Arm offset',
@@ -63,9 +63,9 @@ const sliderDefs = [
     key: 'p',
     label: 'Number of points',
     min: 20,
-    max: 1000,
+    max: 200,
     step: 20,
-    value: 200,
+    value: 20,
     digits: 0,
     category: 'Variables',
   },
@@ -86,7 +86,7 @@ const sliderDefs = [
     min: 1,
     max: 320,
     step: 1,
-    value: 20.0,
+    value: 30.0,
     digits: 1,
     category: 'Display',
   },
@@ -96,7 +96,7 @@ const sliderDefs = [
     min: 0.01,
     max: 5.0,
     step: 0.01,
-    value: 0.6,
+    value: 2,
     digits: 3,
     category: 'Display',
   },
@@ -151,34 +151,33 @@ const sliderDefs = [
     digits: 0,
     category: 'Playback',
   },
-  {
-    key: 'doubleNote',
-    label: 'Play both spirals',
-    category: 'Playback',
-    value: false,
-    switch: true,
-  },
-  {
-    key: 'contrary',
-    label: 'Contrary motion',
-    category: 'Playback',
-    value: false,
-    switch: true,
-  },
-  {
-    key: 'middle',
-    label: 'Start in middle for contrary motion',
-    category: 'Playback',
-    value: false,
-    switch: true,
-  },
 ];
 
 export function getSliderDef(key: string) {
-  return sliderDefs.find((def) => def.key === key)!;
+  return extraSliderDefs.find((def) => def.key === key)!;
 }
 
-const initialState = Object.fromEntries(sliderDefs.map((def) => [def.key, def.value]));
+interface State {
+  A: number;
+  B: number;
+  N: number;
+  C: number;
+  d: number;
+  C_t: number;
+  p: number;
+  s_min: number;
+  s_max: number;
+  R_d: number;
+  tempo: number;
+  npb: number;
+  seed: number;
+  low: number;
+  hi: number;
+}
+
+const initialState: State = Object.fromEntries(
+  extraSliderDefs.map((def) => [def.key, def.value]),
+) as unknown as State;
 const state = { ...initialState };
 
-export { state, sliderDefs };
+export { state, extraSliderDefs };

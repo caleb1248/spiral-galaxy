@@ -3,6 +3,7 @@
   "devDependencies": {
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "typescript": "^7.0.2",
     "vite": "^8.0.13"
   },
   "scripts": {
@@ -12,6 +13,7 @@
   "type": "module",
   "dependencies": {
     "@tonejs/midi": "^2.0.28",
+    "midi-file": "^1.2.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "scribbletune": "^5.5.5",

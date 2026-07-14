@@ -3,15 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Interactive Spiral Arms Visualizer</title>
+    <title>Spiral Galaxy Generator</title>
   </head>
   <body>
-    <header style="display: flex; justify-content: space-between; align-items: center; gap: 1rem">
-      <h1>Interactive Spiral Arms Visualizer</h1>
-      <div>
-        <button id="export-midi" style="padding: 1rem 2rem">Export MIDI</button>
-        <button id="export-pdf" style="padding: 1rem 2rem">Export PDF</button>
-      </div>
+    <header>
+      <h1>Spiral Galaxy Generator</h1>
     </header>
 
     <main class="layout">
@@ -30,7 +26,7 @@
           Show dashed spiral outline
         </label>
 
-        <fieldset class="radio-card">
+        <fieldset class="radio-card" style="display: none">
           <legend>Highlight mode</legend>
           <label
             ><input type="radio" name="highlightMode" value="all" checked /> Sequential: every
@@ -47,6 +43,7 @@
         </fieldset>
 
         <section class="watch" aria-label="Parameter watch">
+          <!-- this section is hidden right now for a minimal ui-->
           <h2>Parameter watch</h2>
           <div class="metric">
             <span class="name">Current index i</span><span id="watchIndex" class="number">—</span>
@@ -74,30 +71,33 @@
           as √(sᵢ/π), so sᵢ is treated as pixel area.
         </div>
       </section>
-
-      <section class="panel canvas-panel" aria-label="Spiral plot">
-        <canvas id="plot" width="1000" height="1000"></canvas>
-        <div class="legend">
-          <span><span class="swatch" style="background: var(--positive)"></span>Arm 1 η ≥ 0</span>
-          <span
-            ><span class="swatch" style="background: var(--negative)"></span>Arm 1 η &lt; 0</span
-          >
-          <span
-            ><span class="swatch" style="background: var(--arm2-positive)"></span>Arm 2 η ≥ 0</span
-          >
-          <span
-            ><span class="swatch" style="background: var(--arm2-negative)"></span>Arm 2 η &lt;
-            0</span
-          >
-          <span
-            ><span
-              class="swatch"
-              style="background: var(--highlight); box-shadow: 0 0 0 2px #111"
-            ></span
-            >Highlighted first-arm point</span
-          >
-        </div>
-      </section>
+      <div class="canvas-side">
+        <h1 style="margin: 1rem 0.5rem; font-size: 2.5rem">Preview</h1>
+        <section class="panel canvas-panel" aria-label="Spiral plot">
+          <canvas id="plot" width="1000" height="1000"></canvas>
+          <!-- <div class="legend">
+            <span><span class="swatch" style="background: var(--positive)"></span>Arm 1 η ≥ 0</span>
+            <span
+              ><span class="swatch" style="background: var(--negative)"></span>Arm 1 η &lt; 0</span
+            >
+            <span
+              ><span class="swatch" style="background: var(--arm2-positive)"></span>Arm 2 η ≥
+              0</span
+            >
+            <span
+              ><span class="swatch" style="background: var(--arm2-negative)"></span>Arm 2 η &lt;
+              0</span
+            >
+            <span
+              ><span
+                class="swatch"
+                style="background: var(--highlight); box-shadow: 0 0 0 2px #111"
+              ></span
+              >Highlighted first-arm point</span
+            >
+          </div> -->
+        </section>
+      </div>
     </main>
 
     <script type="module" src="/src/script.jsx"></script>

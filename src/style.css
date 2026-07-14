@@ -23,8 +23,10 @@
 
 body {
   margin: 0;
-  min-height: 100vh;
+  height: 100vh;
   background: radial-gradient(circle at top left, #172033 0, var(--bg) 38rem);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   color: var(--text);
   font-family:
     'Inter',
@@ -41,7 +43,6 @@ header {
   border-bottom: 1px solid var(--border);
   background: rgba(13, 17, 23, 0.88);
   backdrop-filter: blur(12px);
-  position: sticky;
   top: 0;
   z-index: 5;
 }
@@ -49,7 +50,7 @@ header {
 h1 {
   margin: 0 0 0.25rem;
   font-size: clamp(1.35rem, 2.5vw, 2rem);
-  font-weight: 720;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 
@@ -61,11 +62,17 @@ h1 {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(280px, 380px) minmax(420px, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 1rem;
   padding: 1rem;
-  max-width: 1500px;
+  width: 100%;
+  flex: 1;
   margin: 0 auto;
+}
+
+.layout>* {
+  min-width: 0;
+  min-height: 0;
 }
 
 .panel {
@@ -77,20 +84,27 @@ h1 {
 
 .controls {
   padding: 1rem;
-  align-self: start;
-  position: sticky;
-  top: 5.4rem;
-  max-height: calc(100vh - 6rem);
-  overflow: auto;
+  height: 100%;
+}
+
+.canvas-side {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .canvas-panel {
-  padding: 1rem;
   min-width: 0;
+  min-height: 0;
+  padding: 1rem;
+  container-type: size;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 canvas {
-  width: 100%;
+  max-width: min(100%, 100cqh);
+  flex: 1;
   aspect-ratio: 1 / 1;
   display: block;
   background: radial-gradient(circle at 50% 48%, #101827 0, #090d14 72%);
@@ -129,12 +143,19 @@ canvas {
 }
 
 .control {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: 0.4rem 0.75rem;
   align-items: center;
   padding: 0.55rem 0;
   border-bottom: 1px solid rgba(48, 54, 61, 0.72);
+}
+
+.control-label {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .control:last-child {
@@ -234,11 +255,18 @@ input[type="range"] {
 }
 
 .button-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   margin: 1rem 0;
+
+  &>button {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: content;
+  }
 }
+
 
 button {
   width: max-content;
@@ -264,6 +292,7 @@ button:hover {
 }
 
 .radio-card {
+  display: none;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 0.8rem;
@@ -286,6 +315,7 @@ button:hover {
 }
 
 .watch {
+  display: none;
   margin-top: 1rem;
   padding: 0.9rem;
   background: rgba(13, 17, 23, 0.55);
@@ -353,13 +383,19 @@ button:hover {
   margin-top: 0.75rem;
 }
 
-@media (max-width: 920px) {
+@media (max-width: 780px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .canvas-side {
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .controls {
-    position: static;
-    max-height: none;
+    height: auto;
+    width: 100%;
   }
 }

@@ -890,7 +890,7 @@ function SpiralControlsPanel() {
           }}
         />
       </div>
-      <details className="control-group" style={{ display: 'none' }}>
+      <details className="control-group">
         <summary>Other</summary>
         <div className="control-group-body">
           {extraSliderDefs.map((def) => {

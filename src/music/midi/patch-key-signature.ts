@@ -1,4 +1,4 @@
-import { parseMidi, writeMidi } from 'midi-file';
+import { parseMidi, writeMidi } from "midi-file";
 
 /**
  * The key signature doesn't get picked up by webmscore when set in the header.
@@ -10,7 +10,7 @@ export function patchKeySignature(file: Uint8Array<ArrayBuffer>) {
   const midi = parseMidi(file);
   midi.tracks[1].splice(1, 0, {
     deltaTime: 0,
-    type: 'keySignature',
+    type: "keySignature",
     key: -1,
     scale: 1,
   });

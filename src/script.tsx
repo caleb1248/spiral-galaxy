@@ -1,69 +1,32 @@
-import './style.css';
-import { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import { extraSliderDefs, state } from './state';
-import { setNotes, playNote, indicies, exportPdf } from './music';
-import { midiNote, scale } from './utils';
-import starfieldImageUrl from './assets/starfield.jpg';
+import "./style.css";
+import { useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
+import { extraSliderDefs, SHOWN_SLIDERS, state } from "./state";
+import { setNotes, playNote, indicies, exportPdf } from "./music";
+import { midiNote, scale, waitForImageToLoad } from "./utils";
+import starfieldImageUrl from "./assets/starfield.png";
+import type { SpiralData, Point, Bounds, ToCanvasFn, UiWatch } from "./types";
+import {
+  attenuation,
+  computeT,
+  formatValue,
+  gaussianRandom,
+  markerArea,
+  modTwoPi,
+  mulberry32,
+  notePerSecond,
+  radiusAtPhi,
+  rotatePoint,
+} from "./math";
 
 const starfieldImage = new Image();
-starfieldImage.src = starfieldImageUrl;
+// starfieldImage.style.display = 'none';
+// document.body.appendChild(starfieldImage);
 const minStarfieldDimension = Math.min(starfieldImage.width, starfieldImage.height);
 
-interface Point {
-  i: number;
-  phi: number;
-  theta: number;
-  thetaMod: number;
-  eta1: number;
-  eta2: number;
-  x2pre: number;
-  y2pre: number;
-  xs: number;
-  ys: number;
-  x1r: number;
-  y1r: number;
-  x2pr: number;
-  y2pr: number;
-  xsr: number;
-  ysr: number;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  xs1: number;
-  ys1: number;
-  xs2: number;
-  ys2: number;
-  R1: number;
-  R2: number;
-  stepDist: number;
-}
-
-interface Bounds {
-  minX: number;
-  maxX: number;
-  minY: number;
-  maxY: number;
-}
-
-interface SpiralData {
-  points: Point[];
-  bounds: Bounds | null;
-  T: number;
-  error: string | null;
-}
-
-interface ToCanvasFn {
-  (x: number, y: number): [number, number];
-}
+await waitForImageToLoad(starfieldImage, starfieldImageUrl);
 
 const TWO_PI = 2 * Math.PI;
-const EPS = 1e-12;
-
-function notePerSecond(tempo: number, npb: number) {
-  return (tempo / 60) * npb;
-}
 
 let data: SpiralData | null = null;
 let playing = false;
@@ -74,8 +37,8 @@ let playAccumulator = 0;
 let renderPending = false;
 let computeTimer: number | null = null;
 
-const canvas = document.getElementById('plot') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d')!;
+const canvas = document.getElementById("plot") as HTMLCanvasElement;
+const ctx = canvas.getContext("2d")!;
 
 let watch: {
   index: HTMLElement;
@@ -88,7 +51,7 @@ let watch: {
 function getAvailablePoint(index: number): Point {
   if (!data?.points)
     throw new Error(
-      'Data points are not available. Make sure that data is available before calling this function.',
+      "Data points are not available. Make sure that data is available before calling this function.",
     );
 
   return data.points[indicies[0][index] || indicies[1][index] || 0];
@@ -96,90 +59,18 @@ function getAvailablePoint(index: number): Point {
 
 function bindWatchElements() {
   watch = {
-    index: document.getElementById('watchIndex')!,
-    R: document.getElementById('watchR')!,
-    theta: document.getElementById('watchTheta')!,
-    step: document.getElementById('watchStep')!,
-    eta: document.getElementById('watchEta')!,
+    index: document.getElementById("watchIndex")!,
+    R: document.getElementById("watchR")!,
+    theta: document.getElementById("watchTheta")!,
+    step: document.getElementById("watchStep")!,
+    eta: document.getElementById("watchEta")!,
   };
-}
-
-function formatValue(v: number, digits = 3) {
-  if (!Number.isFinite(v)) return '—';
-  if (digits === 0) return Math.round(v).toString();
-  return (+v).toFixed(digits);
-}
-
-function mulberry32(seed: number) {
-  let t = seed >>> 0;
-  return function rand() {
-    t += 0x6d2b79f5;
-    let r = Math.imul(t ^ (t >>> 15), 1 | t);
-    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function gaussianRandom(rand: () => number) {
-  let u = 0;
-  let v = 0;
-  while (u <= Number.EPSILON) u = rand();
-  while (v <= Number.EPSILON) v = rand();
-  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(TWO_PI * v);
-}
-
-function attenuation(index: number, p: number, C: number, Ct: number) {
-  const turn = (index / p) * C;
-  if (C <= Ct) return 1;
-  if (turn < Ct) return 1;
-  return 1 - (turn - Ct) / (C - Ct);
-}
-
-function radiusAtPhi(phi: number, A: number, B: number, N: number) {
-  const z = B * Math.tan(phi / (2 * N));
-  const denom = Math.log(z);
-  if (!Number.isFinite(z) || !Number.isFinite(denom) || z <= 0 || Math.abs(denom) <= EPS) {
-    return NaN;
-  }
-  const r = A / denom;
-  return Number.isFinite(r) ? r : NaN;
-}
-
-function computeT(
-  A: number,
-  B: number,
-  N: number,
-  C: number,
-  Ct: number,
-  validPhis: number[],
-  validRhos: number[],
-) {
-  const tipTurn = clamp(0, 1e-9, Math.max(C - 1e-9, 1e-9));
-  const phiTip = TWO_PI * tipTurn;
-  const rTip = radiusAtPhi(phiTip, A, B, N);
-
-  if (Number.isFinite(rTip) && Math.abs(rTip) > EPS) {
-    return Math.abs(rTip) * phiTip;
-  }
-
-  if (validPhis.length === 0) return 0;
-  return Math.abs(validRhos[0]) * validPhis[0];
-}
-
-function rotatePoint(x: number, y: number, angle: number) {
-  const ca = Math.cos(angle);
-  const sa = Math.sin(angle);
-  return [ca * x - sa * y, sa * x + ca * y];
-}
-
-function modTwoPi(theta: number) {
-  return ((theta % TWO_PI) + TWO_PI) % TWO_PI;
 }
 
 function computeSpiral(): SpiralData {
   // Randomize the random seed each time
   state.seed = Math.floor(
-    scale(0, 1, 0, extraSliderDefs.find((def) => def.key === 'seed')!.max, Math.random()),
+    scale(0, 1, 0, extraSliderDefs.find((def) => def.key === "seed")!.max, Math.random()),
   );
 
   const A = +state.A;
@@ -210,7 +101,7 @@ function computeSpiral(): SpiralData {
       points: [],
       bounds: null,
       T: 0,
-      error: 'Not enough valid points for these parameter settings.',
+      error: "Not enough valid points for these parameter settings.",
     };
   }
 
@@ -331,7 +222,6 @@ function scheduleRecompute() {
 
     computeNotes();
     computeIndicies();
-    updateStatusText();
     requestRender();
     updateWatchText();
   }, 0);
@@ -383,24 +273,26 @@ function render() {
   drawBackground(width, height);
 
   if (!data || data.error || !data.bounds || data.points.length === 0) {
-    drawCenteredMessage(data?.error || 'No data.', width, height);
+    drawCenteredMessage(data?.error || "No data.", width, height);
     return;
   }
 
   const toCanvas = makeTransform(data.bounds, width, height);
-  drawGrid(toCanvas, width, height);
-  drawAxis(toCanvas);
-  drawScaffold(toCanvas, data.points, 'rgba(160, 170, 185, 0.45)', 'rgba(230, 237, 243, 0.35)');
+  drawBackground(width, height);
+  // drawGrid(toCanvas, width, height);
+  // drawAxis(toCanvas);
+  drawScaffold(toCanvas, data.points, "rgba(160, 170, 185, 0.45)", "rgba(230, 237, 243, 0.35)");
   drawPoints(toCanvas, data.points);
 
   const pt1Index = indicies[0][highlightedIndex];
   const pt2Index = indicies[1][highlightedIndex];
-  if (typeof pt1Index === 'number') drawHighlight(toCanvas, data.points[pt1Index]);
+  if (typeof pt1Index === "number") drawHighlight(toCanvas, data.points[pt1Index]);
 
-  if (typeof pt2Index === 'number') drawHighlight(toCanvas, data.points[pt2Index], 2);
+  if (typeof pt2Index === "number") drawHighlight(toCanvas, data.points[pt2Index], 2);
 }
 
 function drawBackground(width: number, height: number) {
+  console.log("draw background");
   // const grd = ctx.createRadialGradient(
   //   width * 0.5,
   //   height * 0.47,
@@ -414,6 +306,8 @@ function drawBackground(width: number, height: number) {
   // grd.addColorStop(1, '#05070b');
   // ctx.fillStyle = grd;
   // ctx.fillRect(0, 0, width, height);
+  console.log(starfieldImage.width, starfieldImage.height, minStarfieldDimension);
+  ctx.clearRect(0, 0, width, height);
   ctx.drawImage(
     starfieldImage,
     0,
@@ -423,19 +317,21 @@ function drawBackground(width: number, height: number) {
   );
 }
 
+// globalThis.drawBackground = drawBackground;
+
 function drawCenteredMessage(message: string, width: number, height: number) {
   ctx.save();
-  ctx.fillStyle = 'rgba(230, 237, 243, 0.92)';
+  ctx.fillStyle = "rgba(230, 237, 243, 0.92)";
   ctx.font = `${Math.max(14, width * 0.018)}px system-ui, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   ctx.fillText(message, width / 2, height / 2);
   ctx.restore();
 }
 
 function drawGrid(_toCanvas: ToCanvasFn, width: number, height: number) {
   ctx.save();
-  ctx.strokeStyle = 'rgba(130, 150, 170, 0.08)';
+  ctx.strokeStyle = "rgba(130, 150, 170, 0.08)";
   ctx.lineWidth = 1;
 
   const lines = 10;
@@ -454,12 +350,13 @@ function drawGrid(_toCanvas: ToCanvasFn, width: number, height: number) {
   ctx.restore();
 }
 
+// @ts-ignore not used right now
 function drawAxis(toCanvas: (x: number, y: number) => [number, number]) {
   const [x0a, y0a] = toCanvas(-1e6, 0);
   const [x0b, y0b] = toCanvas(1e6, 0);
   const [cx, cy] = toCanvas(0, 0);
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
   ctx.lineWidth = 1.5;
   ctx.setLineDash([8, 8]);
   ctx.beginPath();
@@ -467,7 +364,7 @@ function drawAxis(toCanvas: (x: number, y: number) => [number, number]) {
   ctx.lineTo(x0b, y0b);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
   ctx.beginPath();
   ctx.arc(cx, cy, 4, 0, TWO_PI);
   ctx.fill();
@@ -500,49 +397,77 @@ function drawScaffold(toCanvas: ToCanvasFn, points: Point[], color1: string, col
   ctx.restore();
 }
 
-function markerArea(R: number) {
-  const sMin = Number(state.s_min);
-  const sMax = Math.max(sMin, Number(state.s_max));
-  const Rd = Math.max(1e-9, Number(state.R_d));
-  return sMin + (sMax - sMin) * Math.exp(-R / Rd);
-}
-
 function drawCircle(
   cx: number,
   cy: number,
   radius: number,
-  fill: string = 'white',
+  fill: string = "white",
   stroke: string | null = null,
   alpha: number = 1,
 ) {
-  // Render a 4-point star (a rotated square / diamond with extended tips).
-  // Points are computed from `radius` so existing callers can keep using it.
-  const outer = Math.max(0, radius);
-  const inner = outer * 0.5;
+  radius *= 3;
+  // // Render a 4-point star (a rotated square / diamond with extended tips).
+  // // Points are computed from `radius` so existing callers can keep using it.
+  // const outer = Math.max(0, radius);
+  // const inner = outer * 0.5;
 
-  const points: Array<[number, number]> = [
-    [cx, cy - outer],
-    [cx + outer, cy],
-    [cx, cy + outer],
-    [cx - outer, cy],
-    [cx, cy - inner],
-  ];
+  // const points: Array<[number, number]> = [
+  //   [cx, cy - outer],
+  //   [cx + outer, cy],
+  //   [cx, cy + outer],
+  //   [cx - outer, cy],
+  //   [cx, cy - inner],
+  // ];
 
+  // ctx.save();
+  // ctx.globalAlpha = alpha;
+  // ctx.beginPath();
+  // ctx.moveTo(points[0][0], points[0][1]);
+  // for (let i = 1; i < points.length; i++) {
+  //   ctx.lineTo(points[i][0], points[i][1]);
+  // }
+  // ctx.closePath();
+  // ctx.fillStyle = fill;
+  // ctx.fill();
+  // if (stroke) {
+  //   ctx.strokeStyle = stroke;
+  //   ctx.lineWidth = Math.max(1, outer * 0.25);
+  //   ctx.stroke();
+  // }
+  // ctx.restore();
   ctx.save();
   ctx.globalAlpha = alpha;
+
+  const r = radius / Math.SQRT2;
+
   ctx.beginPath();
-  ctx.moveTo(points[0][0], points[0][1]);
-  for (let i = 1; i < points.length; i++) {
-    ctx.lineTo(points[i][0], points[i][1]);
-  }
+
+  ctx.moveTo(cx, cy - radius);
+
+  // top → right
+  ctx.arc(cx + r, cy - r, r, Math.PI, Math.PI / 2, true);
+
+  // right → bottom
+  ctx.arc(cx + r, cy + r, r, -Math.PI / 2, Math.PI, true);
+
+  // bottom → left
+  ctx.arc(cx - r, cy + r, r, 0, -Math.PI / 2, true);
+
+  // left → top
+  ctx.arc(cx - r, cy - r, r, Math.PI / 2, 0, true);
+
   ctx.closePath();
-  ctx.fillStyle = fill;
-  ctx.fill();
+
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
   if (stroke) {
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = Math.max(1, outer * 0.25);
     ctx.stroke();
   }
+
   ctx.restore();
 }
 
@@ -550,8 +475,8 @@ function drawPoints(toCanvas: ToCanvasFn, points: Point[]) {
   for (const pt of points) {
     const [x1, y1] = toCanvas(pt.x1, pt.y1);
     const [x2, y2] = toCanvas(pt.x2, pt.y2);
-    const r1 = Math.sqrt(markerArea(pt.R1) / Math.PI);
-    const r2 = Math.sqrt(markerArea(pt.R2) / Math.PI);
+    const r1 = Math.sqrt(markerArea(pt.R1, state) / Math.PI);
+    const r2 = Math.sqrt(markerArea(pt.R2, state) / Math.PI);
 
     drawCircle(x1, y1, r1);
     drawCircle(x2, y2, r2);
@@ -561,16 +486,16 @@ function drawPoints(toCanvas: ToCanvasFn, points: Point[]) {
 function drawHighlight(toCanvas: ToCanvasFn, pt: Point | null, arm = 1) {
   if (!pt) return;
   const [x, y] = toCanvas(arm === 1 ? pt.x1 : pt.x2, arm === 1 ? pt.y1 : pt.y2);
-  const baseRadius = Math.sqrt(markerArea(arm === 1 ? pt.R1 : pt.R2) / Math.PI);
+  const baseRadius = Math.sqrt(markerArea(arm === 1 ? pt.R1 : pt.R2, state) / Math.PI);
   const pulse = playing ? 1.0 + 0.25 * Math.sin(performance.now() / 120) : 1.0;
   const r = Math.max(baseRadius + 4, baseRadius * 2.0) * pulse;
 
   ctx.save();
-  ctx.shadowColor = 'rgba(255,255,255,0.9)';
+  ctx.shadowColor = "rgba(255,255,255,0.9)";
   ctx.shadowBlur = 18;
   ctx.lineWidth = 3;
-  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.fillStyle = "rgba(255,255,255,0.22)";
   ctx.beginPath();
   ctx.arc(x, y, r, 0, TWO_PI);
   ctx.fill();
@@ -578,11 +503,11 @@ function drawHighlight(toCanvas: ToCanvasFn, pt: Point | null, arm = 1) {
   ctx.restore();
 
   ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.78)';
-  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+  ctx.fillStyle = "rgba(0,0,0,0.78)";
+  ctx.strokeStyle = "rgba(255,255,255,0.75)";
   ctx.lineWidth = 1;
   const label = `i=${pt.i}`;
-  ctx.font = '14px system-ui, sans-serif';
+  ctx.font = "14px system-ui, sans-serif";
   const w = ctx.measureText(label).width + 14;
   const h = 24;
   const lx = x + r + 8;
@@ -590,8 +515,8 @@ function drawHighlight(toCanvas: ToCanvasFn, pt: Point | null, arm = 1) {
   roundedRect(ctx, lx, ly, w, h, 8);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = '#ffffff';
-  ctx.textBaseline = 'middle';
+  ctx.fillStyle = "#ffffff";
+  ctx.textBaseline = "middle";
   ctx.fillText(label, lx + 7, ly + h / 2);
   ctx.restore();
 }
@@ -619,8 +544,8 @@ function selectedMode() {
 
 function acceptsPoint(pt: Point) {
   const mode = selectedMode();
-  if (mode === 'positive') return pt.eta1 >= 0;
-  if (mode === 'negative') return pt.eta1 < 0;
+  if (mode === "positive") return pt.eta1 >= 0;
+  if (mode === "negative") return pt.eta1 < 0;
   return true;
 }
 
@@ -638,7 +563,7 @@ function advanceHighlight() {
 
   playNote(next, notePerSecond(state.tempo, state.npb));
 
-  if (selectedMode() === 'all') {
+  if (selectedMode() === "all") {
     highlightedIndex = next;
     return;
   }
@@ -663,7 +588,7 @@ function clampHighlightIndex(index: number) {
 
 function ensureHighlightedPointMatchesMode() {
   if (!data || !data.points || data.points.length === 0) return;
-  if (selectedMode() === 'all') return;
+  if (selectedMode() === "all") return;
   if (acceptsPoint(getAvailablePoint(highlightedIndex))) return;
   for (let k = 0; k < indicies[0].length; k++) {
     if (indicies[0][k] && acceptsPoint(data.points[indicies[0][k]!])) {
@@ -737,28 +662,19 @@ function computeNotes() {
 }
 
 // React UI state plumbing (watch/status live in React; canvas draw live here)
-const uiStateRef = { current: { highlightMode: 'all' } };
-
-interface UiWatch {
-  index: string;
-  R: string;
-  theta: string;
-  step: string;
-  eta: string;
-}
+const uiStateRef = { current: { highlightMode: "all" } };
 
 let setUiWatch: (watch: UiWatch) => void = () => {};
-let setUiStatus: (status: string) => void = () => {};
 
 function updateWatchText() {
   const next: UiWatch = (() => {
     if (!data || !data.points || data.points.length === 0) {
-      return { index: '—', R: '—', theta: '—', step: '—', eta: '—' };
+      return { index: "—", R: "—", theta: "—", step: "—", eta: "—" };
     }
 
-    console.log(indicies[0][highlightedIndex], highlightedIndex, data.points.length);
+    // console.log(indicies[0][highlightedIndex], highlightedIndex, data.points.length);
 
-    console.log(indicies[0]);
+    // console.log(indicies[0]);
     const pt = getAvailablePoint(highlightedIndex); // data is not null here
     return {
       index: String(pt.i),
@@ -775,11 +691,11 @@ function updateWatch() {
   if (!watch || !watch.index) return;
 
   if (!data || !data.points || data.points.length === 0) {
-    watch.index.textContent = '—';
-    watch.R.textContent = '—';
-    watch.theta.textContent = '—';
-    watch.step.textContent = '—';
-    watch.eta.textContent = '—';
+    watch.index.textContent = "—";
+    watch.R.textContent = "—";
+    watch.theta.textContent = "—";
+    watch.step.textContent = "—";
+    watch.eta.textContent = "—";
     return;
   }
 
@@ -791,29 +707,18 @@ function updateWatch() {
   watch.eta.textContent = formatValue(pt.eta1, 6);
 }
 
-function updateStatusText() {
-  const next = (() => {
-    if (!data) return 'Ready.';
-    if (data.error) return data.error;
-    const mode = selectedMode();
-    return `Generated ${data.points.length} valid points per arm. Derived T = ${formatValue(data.T, 6)}. Highlight mode: ${mode}.`;
-  })();
-  setUiStatus(next);
-}
-
-function resetSimulation() {
-  highlightedIndex = 0;
-  ensureHighlightedPointMatchesMode();
-  playAccumulator = 0;
-  updateWatchText();
-  updateStatusText();
-  requestRender();
-}
+// function resetSimulation() {
+//   highlightedIndex = 0;
+//   ensureHighlightedPointMatchesMode();
+//   playAccumulator = 0;
+//   updateWatchText();
+//   updateStatusText();
+//   requestRender();
+// }
 
 function setHighlightMode(nextMode: string) {
   uiStateRef.current.highlightMode = nextMode;
   ensureHighlightedPointMatchesMode();
-  updateStatusText();
   updateWatchText();
   requestRender();
 }
@@ -830,11 +735,11 @@ function computeIndicies() {
     ...(sequence(data?.points.length) as number[]),
   ];
 
-  console.log('done:', indicies[0]);
+  console.log("done:", indicies[0]);
 
   indicies[1] = [
     ...(Array.from({ length: data?.points.length }).fill(null) as null[]),
-    ...(sequence(data?.points.length, true) as number[]),
+    ...(sequence(data?.points.length) as number[]),
     ...(sequence(data?.points.length, true) as number[]),
   ];
 }
@@ -842,85 +747,49 @@ function computeIndicies() {
 function SpiralControlsPanel() {
   const [sliders, setSliders] = useState(() => ({ ...state }));
   const [highlightMode, setHighlightModeState] = useState(uiStateRef.current.highlightMode);
-  // const [uiPlaying, setUiPlayingLocal] = useState(false);
   const [watchState, setWatchStateLocal] = useState({
-    index: '—',
-    R: '—',
-    theta: '—',
-    step: '—',
-    eta: '—',
+    index: "—",
+    R: "—",
+    theta: "—",
+    step: "—",
+    eta: "—",
   });
-  const [statusText, setStatusTextLocal] = useState('Ready.');
 
   useEffect(() => {
     bindWatchElements();
     setUiWatch = setWatchStateLocal;
-    setUiStatus = setStatusTextLocal;
 
     updateWatchText();
-    updateStatusText();
   }, []);
 
-  // const controlsByCategory = extraSliderDefs.reduce((acc, def) => {
-  //   if (!acc[def.category]) acc[def.category] = [];
-  //   acc[def.category].push(def);
-  //   return acc;
-  // }, {});
-
-  const sliderControls = (
-    <>
-      <div className="control" style={{ padding: '1rem', border: 'none' }}>
+  const sliderControls = extraSliderDefs.map((def) => {
+    const key = def.key as keyof typeof sliders;
+    if (!SHOWN_SLIDERS.includes(key)) return null;
+    const v = sliders[key];
+    return (
+      <div className="control" key={def.key}>
         <div className="control-label">
-          <label htmlFor="slider-p">Stars (notes) per arm</label>
-          <span className="value">{state['p']}</span>
+          <label htmlFor={`slider-${def.key}`}>{def.label}</label>
+          <span className="value">{def.format ? def.format(state[key]) : state[key]}</span>
         </div>
 
         <input
           type="range"
-          id="slider-p"
-          min="10"
-          max="100"
-          step={10}
-          value={String(state['p'])}
+          id={`slider-${def.key}`}
+          min={String(def.min)}
+          max={String(def.max)}
+          step={String(def.step)}
+          value={String(v)}
           onInput={(e) => {
             const next = +e.currentTarget.value;
-            setSliders((prev) => ({ ...prev, p: next }));
-            state['p'] = next;
+            setSliders((prev) => ({ ...prev, [def.key]: next }));
+            state[def.key as keyof typeof state] = next;
             scheduleRecompute();
           }}
         />
       </div>
-      <details className="control-group">
-        <summary>Other</summary>
-        <div className="control-group-body">
-          {extraSliderDefs.map((def) => {
-            if (def.key === 'p') return;
-            const v = sliders[def.key as keyof typeof sliders];
-            return (
-              <div className="control" key={def.key}>
-                <label htmlFor={`slider-${def.key}`}>{def.label}</label>
-
-                <input
-                  type="range"
-                  id={`slider-${def.key}`}
-                  min={String(def.min)}
-                  max={String(def.max)}
-                  step={String(def.step)}
-                  value={String(v)}
-                  onInput={(e) => {
-                    const next = +e.currentTarget.value;
-                    setSliders((prev) => ({ ...prev, [def.key]: next }));
-                    state[def.key as keyof typeof state] = next;
-                    scheduleRecompute();
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </details>
-    </>
-  );
+    );
+  });
 
   return (
     <>
@@ -944,10 +813,10 @@ function SpiralControlsPanel() {
             type="radio"
             name="highlightMode"
             value="all"
-            checked={highlightMode === 'all'}
+            checked={highlightMode === "all"}
             onChange={() => {
-              setHighlightModeState('all');
-              setHighlightMode('all');
+              setHighlightModeState("all");
+              setHighlightMode("all");
             }}
           />
           Sequential: every i
@@ -958,10 +827,10 @@ function SpiralControlsPanel() {
             type="radio"
             name="highlightMode"
             value="positive"
-            checked={highlightMode === 'positive'}
+            checked={highlightMode === "positive"}
             onChange={() => {
-              setHighlightModeState('positive');
-              setHighlightMode('positive');
+              setHighlightModeState("positive");
+              setHighlightMode("positive");
             }}
           />
           Only positive ηᵢ = Ggᵢ·a
@@ -973,10 +842,10 @@ function SpiralControlsPanel() {
             type="radio"
             name="highlightMode"
             value="negative"
-            checked={highlightMode === 'negative'}
+            checked={highlightMode === "negative"}
             onChange={() => {
-              setHighlightModeState('negative');
-              setHighlightMode('negative');
+              setHighlightModeState("negative");
+              setHighlightMode("negative");
             }}
           />
           Only negative ηᵢ = Ggᵢ·a
@@ -1032,19 +901,18 @@ function SpiralControlsPanel() {
   );
 }
 
-window.addEventListener('resize', () => requestRender());
+window.addEventListener("resize", () => requestRender());
 
-const controlsPanel = document.querySelector('section.panel.controls');
-if (!controlsPanel) throw new Error('Missing controls panel section: section.panel.controls');
+const controlsPanel = document.querySelector("section.panel.controls");
+if (!controlsPanel) throw new Error("Missing controls panel section: section.panel.controls");
 controlsPanel.replaceChildren();
 const root = createRoot(controlsPanel);
 root.render(<SpiralControlsPanel />);
 
 data = computeSpiral();
 computeNotes();
-console.log('computing indicies');
+console.log("computing indicies");
 computeIndicies();
 ensureHighlightedPointMatchesMode();
 updateWatchText();
-updateStatusText();
 requestRender();

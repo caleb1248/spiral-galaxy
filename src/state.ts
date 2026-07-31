@@ -1,3 +1,5 @@
+import type { State } from './types';
+
 const extraSliderDefs = [
   {
     key: 'A',
@@ -7,7 +9,6 @@ const extraSliderDefs = [
     step: 0.01,
     value: 0.8,
     digits: 3,
-    category: 'Variables',
   },
   {
     key: 'B',
@@ -17,7 +18,6 @@ const extraSliderDefs = [
     step: 0.1,
     value: 2.0,
     digits: 3,
-    category: 'Variables',
   },
   {
     key: 'N',
@@ -27,7 +27,6 @@ const extraSliderDefs = [
     step: 1,
     value: 16,
     digits: 0,
-    category: 'Variables',
   },
   {
     key: 'C',
@@ -37,7 +36,6 @@ const extraSliderDefs = [
     step: 0.01,
     value: 0.58,
     digits: 3,
-    category: 'Variables',
   },
   {
     key: 'd',
@@ -45,9 +43,8 @@ const extraSliderDefs = [
     min: 0.0,
     max: 0.5,
     step: 0.001,
-    value: 0.075,
+    value: 0.1,
     digits: 4,
-    category: 'Variables',
   },
   {
     key: 'C_t',
@@ -57,7 +54,6 @@ const extraSliderDefs = [
     step: 0.0001,
     value: 0.0573,
     digits: 4,
-    category: 'Variables',
   },
   {
     key: 'p',
@@ -65,9 +61,8 @@ const extraSliderDefs = [
     min: 20,
     max: 200,
     step: 20,
-    value: 20,
+    value: 40,
     digits: 0,
-    category: 'Variables',
   },
 
   {
@@ -78,7 +73,6 @@ const extraSliderDefs = [
     step: 0.25,
     value: 4.0,
     digits: 2,
-    category: 'Display',
   },
   {
     key: 's_max',
@@ -88,7 +82,6 @@ const extraSliderDefs = [
     step: 1,
     value: 30.0,
     digits: 1,
-    category: 'Display',
   },
   {
     key: 'R_d',
@@ -98,7 +91,6 @@ const extraSliderDefs = [
     step: 0.01,
     value: 2,
     digits: 3,
-    category: 'Display',
   },
   {
     key: 'tempo',
@@ -108,7 +100,6 @@ const extraSliderDefs = [
     step: 1,
     value: 120,
     digits: 0,
-    category: 'Playback',
   },
   {
     key: 'npb',
@@ -118,7 +109,6 @@ const extraSliderDefs = [
     step: 1,
     value: 2,
     digits: 0,
-    category: 'Playback',
     format: (v: number) => '1/' + 2 ** v,
   },
   {
@@ -129,7 +119,6 @@ const extraSliderDefs = [
     step: 1,
     value: 42,
     digits: 0,
-    category: 'Variables',
   },
   {
     key: 'low',
@@ -139,7 +128,6 @@ const extraSliderDefs = [
     step: 1,
     value: 2,
     digits: 0,
-    category: 'Playback',
   },
   {
     key: 'hi',
@@ -149,35 +137,18 @@ const extraSliderDefs = [
     step: 1,
     value: 5,
     digits: 0,
-    category: 'Playback',
   },
 ];
 
-export function getSliderDef(key: string) {
+function getSliderDef(key: string) {
   return extraSliderDefs.find((def) => def.key === key)!;
 }
 
-interface State {
-  A: number;
-  B: number;
-  N: number;
-  C: number;
-  d: number;
-  C_t: number;
-  p: number;
-  s_min: number;
-  s_max: number;
-  R_d: number;
-  tempo: number;
-  npb: number;
-  seed: number;
-  low: number;
-  hi: number;
-}
+const SHOWN_SLIDERS = ['A', 'B', 'N', 'C', 'd'];
 
 const initialState: State = Object.fromEntries(
   extraSliderDefs.map((def) => [def.key, def.value]),
 ) as unknown as State;
 const state = { ...initialState };
 
-export { state, extraSliderDefs };
+export { state, extraSliderDefs, SHOWN_SLIDERS, getSliderDef };

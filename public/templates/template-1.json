@@ -1,0 +1,20 @@
+{
+  "notesPerMeasure": 10,
+  "insertions": [
+    { "measure": 1, "hand": "right" },
+    { "measure": 5, "hand": "right", "omit": [0] },
+    { "measure": 9, "hand": "right", "omit": [0] },
+    { "measure": 13, "hand": "right", "omit": [0] },
+    { "measure": 25, "hand": "left" },
+    { "measure": 29, "hand": "left", "omit": [0] },
+    { "measure": 29, "hand": "left", "omit": [0] },
+    { "measure": 33, "hand": "left", "omit": [0] },
+    { "measure": 37, "hand": "left", "omit": [0] },
+    { "measure": 41, "hand": "right", "omit": [0] },
+    { "measure": 45, "hand": "right", "omit": [0] },
+    { "measure": 49, "hand": "right", "omit": [0] },
+    { "measure": 53, "hand": "right", "omit": [0] },
+    { "measure": 59, "hand": "right", "omit": [0], "keySignatureFifths": 3 },
+    { "measure": 59, "hand": "left", "omit": [0], "keySignatureFifths": 3 }
+  ]
+}

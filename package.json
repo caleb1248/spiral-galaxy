@@ -1,6 +1,7 @@
 {
   "name": "spiral-galaxy-composition",
   "devDependencies": {
+    "@types/bun": "^1.3.14",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "typescript": "^7.0.2",
@@ -16,7 +17,6 @@
     "midi-file": "^1.2.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "scribbletune": "^5.5.5",
     "tone": "^15.1.22",
     "webmscore": "^1.2.1"
   }

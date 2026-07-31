@@ -1,9 +1,7 @@
-import WebMscore from 'webmscore';
+import WebMscore from "webmscore";
 
-await WebMscore.ready;
-
-export async function renderPdfFromMidi(midiData: Uint8Array) {
-  const score = await WebMscore.load('midi', midiData);
-  (await score.metadata()).title = 'Spiral Galaxy';
-  return score.savePdf() as Promise<Uint8Array<ArrayBuffer>>;
+export async function renderPdfFromXML(xml: string) {
+  await WebMscore.ready;
+  const score = await WebMscore.load("xml", new TextEncoder().encode(xml));
+  return (await score.savePdf()) as Uint8Array<ArrayBuffer>;
 }

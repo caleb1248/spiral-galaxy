@@ -329,6 +329,7 @@ function drawCenteredMessage(message: string, width: number, height: number) {
   ctx.restore();
 }
 
+// @ts-ignore not used right now
 function drawGrid(_toCanvas: ToCanvasFn, width: number, height: number) {
   ctx.save();
   ctx.strokeStyle = "rgba(130, 150, 170, 0.08)";

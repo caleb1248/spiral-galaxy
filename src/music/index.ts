@@ -114,7 +114,7 @@ window.addEventListener("keydown", (e) => {
 });
 
 export async function exportPdf() {
-  const xml = populateComposition(TEMPLATE_XML, TEMPLATE_DATA, arm1, arm2);
+  const xml = populateComposition(TEMPLATE_XML, TEMPLATE_DATA, arm1, arm2.toReversed()); // reverse the arm2 for contrary motion
 
   // downloadFile(new TextEncoder().encode(xml), "galaxy.musicxml", "application/xml");
   const pdfData = await renderPdfFromXML(xml);

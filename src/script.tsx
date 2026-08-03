@@ -741,7 +741,7 @@ function computeIndicies() {
   indicies[1] = [
     ...(Array.from({ length: data?.points.length }).fill(null) as null[]),
     ...(sequence(data?.points.length) as number[]),
-    ...(sequence(data?.points.length, true) as number[]),
+    ...(sequence(data?.points.length) as number[]),
   ];
 }
 

@@ -102,16 +102,12 @@ function _playNote(index: number | null, speed: number, arm: 1 | 2 = 1) {
   if (!index) return;
 
   const notes = arm === 1 ? arm1 : arm2;
-  const note = convertNote(notes[index], cMajorMidiNotes);
+
+  // David wanted the second arm to be played from high to low but from middle to edge.
+  // This is not possible with the way the galaxy points are designed, so we manually reverse the second arm's notes during playback only.
+  const note = convertNote(notes[arm === 1 ? index : notes.length - 1 - index], cMajorMidiNotes);
   piano.triggerAttackRelease(note, 1 / speed, Tone.now());
 }
-
-window.addEventListener("keydown", (e) => {
-  if (e.repeat || !e.ctrlKey || e.key !== "s") return;
-  e.preventDefault();
-
-  downloadFile(patchKeySignature(getMidiData()), "galaxy.mid", "audio/midi");
-});
 
 export async function exportPdf() {
   const xml = populateComposition(TEMPLATE_XML, TEMPLATE_DATA, arm1, arm2.toReversed()); // reverse the arm2 for contrary motion

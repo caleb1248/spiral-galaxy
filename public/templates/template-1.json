@@ -14,7 +14,7 @@
     { "measure": 45, "hand": "right", "omit": [0] },
     { "measure": 49, "hand": "right", "omit": [0] },
     { "measure": 53, "hand": "right", "omit": [0] },
-    { "measure": 59, "hand": "right", "omit": [0], "keySignatureFifths": 3 },
-    { "measure": 59, "hand": "left", "omit": [0], "keySignatureFifths": 3 }
+    { "measure": 59, "hand": "right", "keySignatureFifths": 3 },
+    { "measure": 59, "hand": "left", "keySignatureFifths": 3 }
   ]
 }

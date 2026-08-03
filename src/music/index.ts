@@ -62,7 +62,7 @@ const piano = new Tone.Sampler({
     A4: "A4.mp3",
   },
   release: 1,
-  baseUrl: "https://tonejs.github.io/audio/salamander/",
+  baseUrl: "/sounds/piano/",
 }).toDestination();
 
 await Tone.loaded();

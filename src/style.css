@@ -405,9 +405,16 @@ button:hover {
 }
 
 @media (max-width: 780px) {
+
+  html,
+  body {
+    height: auto;
+  }
+
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    /* grid-template-rows: auto minmax(0, 1fr); */
+    grid-template-rows: auto auto;
   }
 
   .canvas-side {
@@ -418,5 +425,14 @@ button:hover {
   .controls {
     height: auto;
     width: 100%;
+  }
+
+  canvas {
+    max-width: 100%;
+    margin: auto;
+  }
+
+  .canvas-panel {
+    display: block;
   }
 }

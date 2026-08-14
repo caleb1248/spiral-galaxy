@@ -1,11 +1,11 @@
 import "./style.css";
-import { useEffect, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { extraSliderDefs, SHOWN_SLIDERS, state } from "./state";
-import { setNotes, playNote, indicies, exportPdf } from "./music";
-import { midiNote, scale, waitForImageToLoad } from "./utils";
+import { Application, Container, Graphics, Sprite, Text, TextStyle, Texture } from "pixi.js";
+import { extraSliderDefs, state } from "./lib/state";
+import { setNotes, playNote, indicies } from "./music";
+import { mountControls, uiStateRef, updateWatch as updateUiWatch } from "./lib/ui";
+import { midiNote, scale, waitForImageToLoad } from "./lib/utils";
 import starfieldImageUrl from "./assets/starfield.png";
-import type { SpiralData, Point, Bounds, ToCanvasFn, UiWatch } from "./types";
+import type { SpiralData, Point, Bounds, ToCanvasFn, UiWatch } from "./lib/types";
 import {
   attenuation,
   computeT,
@@ -17,18 +17,19 @@ import {
   notePerSecond,
   radiusAtPhi,
   rotatePoint,
-} from "./math";
+} from "./lib/math";
 
 const starfieldImage = new Image();
 // starfieldImage.style.display = 'none';
 // document.body.appendChild(starfieldImage);
-const minStarfieldDimension = Math.min(starfieldImage.width, starfieldImage.height);
-
 await waitForImageToLoad(starfieldImage, starfieldImageUrl);
+const minStarfieldDimension = Math.min(starfieldImage.width, starfieldImage.height);
 
 const TWO_PI = 2 * Math.PI;
 
 let data: SpiralData | null = null;
+// Bumped whenever the spiral is recomputed, so the static dust knows to re-scatter.
+let spiralVersion = 0;
 let playing = false;
 let highlightedIndex = 0;
 let animationHandle: number | null = null;
@@ -38,15 +39,14 @@ let renderPending = false;
 let computeTimer: number | null = null;
 
 const canvas = document.getElementById("plot") as HTMLCanvasElement;
-const ctx = canvas.getContext("2d")!;
-
-let watch: {
-  index: HTMLElement;
-  R: HTMLElement;
-  theta: HTMLElement;
-  step: HTMLElement;
-  eta: HTMLElement;
-} | null = null;
+const pixiApp = new Application();
+await pixiApp.init({ canvas, antialias: true, autoStart: false, backgroundAlpha: 0 });
+const plotStage = new Container();
+pixiApp.stage.addChild(plotStage);
+// Particles live in their own layer so the per-frame plot rebuild never destroys them.
+const particleLayer = new Container();
+pixiApp.stage.addChild(particleLayer);
+const starfieldTexture = Texture.from(starfieldImage);
 
 function getAvailablePoint(index: number): Point {
   if (!data?.points)
@@ -55,16 +55,6 @@ function getAvailablePoint(index: number): Point {
     );
 
   return data.points[indicies[0][index] || indicies[1][index] || 0];
-}
-
-function bindWatchElements() {
-  watch = {
-    index: document.getElementById("watchIndex")!,
-    R: document.getElementById("watchR")!,
-    theta: document.getElementById("watchTheta")!,
-    step: document.getElementById("watchStep")!,
-    eta: document.getElementById("watchEta")!,
-  };
 }
 
 function computeSpiral(): SpiralData {
@@ -218,6 +208,7 @@ function scheduleRecompute() {
   computeTimer = setTimeout(() => {
     computeTimer = null;
     data = computeSpiral();
+    spiralVersion++;
     highlightedIndex = clampHighlightIndex(highlightedIndex);
 
     computeNotes();
@@ -238,15 +229,13 @@ function requestRender() {
 
 function resizeCanvasForDPR() {
   const rect = canvas.getBoundingClientRect();
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  const width = Math.max(500, Math.round(rect.width * dpr));
-  const height = Math.max(500, Math.round(rect.height * dpr));
-  if (canvas.width !== width || canvas.height !== height) {
-    canvas.width = width;
-    canvas.height = height;
+  const width = Math.max(500, Math.round(rect.width));
+  const height = Math.max(500, Math.round(rect.height));
+  if (pixiApp.screen.width !== width || pixiApp.screen.height !== height) {
+    pixiApp.renderer.resize(width, height);
     requestRender();
   }
-  return { width, height, dpr };
+  return { width, height };
 }
 
 function makeTransform(bounds: Bounds, width: number, height: number): ToCanvasFn {
@@ -268,111 +257,62 @@ function makeTransform(bounds: Bounds, width: number, height: number): ToCanvasF
 
 function render() {
   const { width, height } = resizeCanvasForDPR();
-  ctx.clearRect(0, 0, width, height);
-
+  plotStage.removeChildren().forEach((child) => child.destroy());
   drawBackground(width, height);
 
   if (!data || data.error || !data.bounds || data.points.length === 0) {
+    starAnchors = [];
+    anchorWeights = [];
     drawCenteredMessage(data?.error || "No data.", width, height);
+    pixiApp.renderer.render({ container: pixiApp.stage });
     return;
   }
 
   const toCanvas = makeTransform(data.bounds, width, height);
-  drawBackground(width, height);
-  // drawGrid(toCanvas, width, height);
-  // drawAxis(toCanvas);
   drawScaffold(toCanvas, data.points, "rgba(160, 170, 185, 0.45)", "rgba(230, 237, 243, 0.35)");
   drawPoints(toCanvas, data.points);
+  layoutParticlesIfNeeded(`${spiralVersion}:${width}x${height}`);
 
   const pt1Index = indicies[0][highlightedIndex];
   const pt2Index = indicies[1][highlightedIndex];
   if (typeof pt1Index === "number") drawHighlight(toCanvas, data.points[pt1Index]);
 
   if (typeof pt2Index === "number") drawHighlight(toCanvas, data.points[pt2Index], 2);
+  pixiApp.renderer.render({ container: pixiApp.stage });
 }
 
 function drawBackground(width: number, height: number) {
-  console.log("draw background");
-  // const grd = ctx.createRadialGradient(
-  //   width * 0.5,
-  //   height * 0.47,
-  //   0,
-  //   width * 0.5,
-  //   height * 0.5,
-  //   Math.max(width, height) * 0.75,
-  // );
-  // grd.addColorStop(0, '#101827');
-  // grd.addColorStop(0.65, '#090d14');
-  // grd.addColorStop(1, '#05070b');
-  // ctx.fillStyle = grd;
-  // ctx.fillRect(0, 0, width, height);
-  console.log(starfieldImage.width, starfieldImage.height, minStarfieldDimension);
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(
-    starfieldImage,
-    0,
-    0,
-    starfieldImage.width * (width / minStarfieldDimension),
-    starfieldImage.height * (height / minStarfieldDimension),
-  );
+  const background = new Sprite(starfieldTexture);
+  background.width = starfieldImage.width * (width / minStarfieldDimension);
+  background.height = starfieldImage.height * (height / minStarfieldDimension);
+  plotStage.addChild(background);
 }
 
 // globalThis.drawBackground = drawBackground;
 
 function drawCenteredMessage(message: string, width: number, height: number) {
-  ctx.save();
-  ctx.fillStyle = "rgba(230, 237, 243, 0.92)";
-  ctx.font = `${Math.max(14, width * 0.018)}px system-ui, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(message, width / 2, height / 2);
-  ctx.restore();
+  const text = new Text({
+    text: message,
+    style: new TextStyle({ fill: 0xe6edf3, fontSize: Math.max(14, width * 0.018) }),
+  });
+  text.anchor.set(0.5);
+  text.position.set(width / 2, height / 2);
+  plotStage.addChild(text);
 }
 
-// @ts-ignore not used right now
-function drawGrid(_toCanvas: ToCanvasFn, width: number, height: number) {
-  ctx.save();
-  ctx.strokeStyle = "rgba(130, 150, 170, 0.08)";
-  ctx.lineWidth = 1;
-
-  const lines = 10;
-  for (let k = 1; k < lines; k++) {
-    const x = (k / lines) * width;
-    const y = (k / lines) * height;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-// @ts-ignore not used right now
-function drawAxis(toCanvas: (x: number, y: number) => [number, number]) {
-  const [x0a, y0a] = toCanvas(-1e6, 0);
-  const [x0b, y0b] = toCanvas(1e6, 0);
-  const [cx, cy] = toCanvas(0, 0);
-  ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.25)";
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([8, 8]);
-  ctx.beginPath();
-  ctx.moveTo(x0a, y0a);
-  ctx.lineTo(x0b, y0b);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.beginPath();
-  ctx.arc(cx, cy, 4, 0, TWO_PI);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawScaffold(toCanvas: ToCanvasFn, points: Point[], color1: string, color2: string) {
+function drawScaffold(toCanvas: ToCanvasFn, points: Point[], _color1: string, _color2: string) {
+  if (points.length === 0) return;
+  const drawLine = (xKey: "xs1" | "xs2", yKey: "ys1" | "ys2", color: number, alpha: number) => {
+    const line = new Graphics();
+    line.setStrokeStyle({ width: 2, color, alpha });
+    line.moveTo(...toCanvas(points[0][xKey], points[0][yKey]));
+    for (let idx = 1; idx < points.length; idx++)
+      line.lineTo(...toCanvas(points[idx][xKey], points[idx][yKey]));
+    plotStage.addChild(line);
+  };
+  drawLine("xs1", "ys1", 0xa0aab9, 0.45);
+  drawLine("xs2", "ys2", 0xe6edf3, 0.35);
+  /*
   ctx.save();
   ctx.lineWidth = 2;
   ctx.setLineDash([8, 7]);
@@ -395,10 +335,11 @@ function drawScaffold(toCanvas: ToCanvasFn, points: Point[], color1: string, col
   });
   ctx.stroke();
 
-  ctx.restore();
+  ctx.restore(); */
 }
 
-function drawCircle(
+function drawStar(
+  circle: Graphics,
   cx: number,
   cy: number,
   radius: number,
@@ -407,81 +348,44 @@ function drawCircle(
   alpha: number = 1,
 ) {
   radius *= 3;
-  // // Render a 4-point star (a rotated square / diamond with extended tips).
-  // // Points are computed from `radius` so existing callers can keep using it.
-  // const outer = Math.max(0, radius);
-  // const inner = outer * 0.5;
+  const cornerRadius = radius / Math.SQRT2;
 
-  // const points: Array<[number, number]> = [
-  //   [cx, cy - outer],
-  //   [cx + outer, cy],
-  //   [cx, cy + outer],
-  //   [cx - outer, cy],
-  //   [cx, cy - inner],
-  // ];
-
-  // ctx.save();
-  // ctx.globalAlpha = alpha;
-  // ctx.beginPath();
-  // ctx.moveTo(points[0][0], points[0][1]);
-  // for (let i = 1; i < points.length; i++) {
-  //   ctx.lineTo(points[i][0], points[i][1]);
-  // }
-  // ctx.closePath();
-  // ctx.fillStyle = fill;
-  // ctx.fill();
-  // if (stroke) {
-  //   ctx.strokeStyle = stroke;
-  //   ctx.lineWidth = Math.max(1, outer * 0.25);
-  //   ctx.stroke();
-  // }
-  // ctx.restore();
-  ctx.save();
-  ctx.globalAlpha = alpha;
-
-  const r = radius / Math.SQRT2;
-
-  ctx.beginPath();
-
-  ctx.moveTo(cx, cy - radius);
-
-  // top → right
-  ctx.arc(cx + r, cy - r, r, Math.PI, Math.PI / 2, true);
-
-  // right → bottom
-  ctx.arc(cx + r, cy + r, r, -Math.PI / 2, Math.PI, true);
-
-  // bottom → left
-  ctx.arc(cx - r, cy + r, r, 0, -Math.PI / 2, true);
-
-  // left → top
-  ctx.arc(cx - r, cy - r, r, Math.PI / 2, 0, true);
-
-  ctx.closePath();
-
-  if (fill) {
-    ctx.fillStyle = fill;
-    ctx.fill();
-  }
-
-  if (stroke) {
-    ctx.strokeStyle = stroke;
-    ctx.stroke();
-  }
-
-  ctx.restore();
+  // Build the four-pointed star from four circular arcs rather than straight edges.
+  circle.moveTo(cx, cy - radius);
+  circle.arc(cx + cornerRadius, cy - cornerRadius, cornerRadius, Math.PI, Math.PI / 2, true);
+  circle.arc(cx + cornerRadius, cy + cornerRadius, cornerRadius, -Math.PI / 2, Math.PI, true);
+  circle.arc(cx - cornerRadius, cy + cornerRadius, cornerRadius, 0, -Math.PI / 2, true);
+  circle.arc(cx - cornerRadius, cy - cornerRadius, cornerRadius, Math.PI / 2, 0, true);
+  circle.closePath();
+  circle.fill({ color: fill, alpha });
+  if (stroke) circle.stroke({ color: stroke, width: 1, alpha });
 }
 
 function drawPoints(toCanvas: ToCanvasFn, points: Point[]) {
+  // All stars share one Graphics: hundreds of separate ones would be hundreds of draw calls.
+  const stars = new Graphics();
+  starAnchors = [];
+
   for (const pt of points) {
     const [x1, y1] = toCanvas(pt.x1, pt.y1);
     const [x2, y2] = toCanvas(pt.x2, pt.y2);
     const r1 = Math.sqrt(markerArea(pt.R1, state) / Math.PI);
     const r2 = Math.sqrt(markerArea(pt.R2, state) / Math.PI);
 
-    drawCircle(x1, y1, r1);
-    drawCircle(x2, y2, r2);
+    drawStar(stars, x1, y1, r1);
+    drawStar(stars, x2, y2, r2);
+    // drawStar scales its radius by 3, so anchors track the on-screen size.
+    starAnchors.push({ x: x1, y: y1, r: r1 * 3 }, { x: x2, y: y2, r: r2 * 3 });
   }
+
+  anchorWeights = [];
+  let running = 0;
+  for (const anchor of starAnchors) {
+    running += anchor.r * anchor.r;
+    anchorWeights.push(running);
+  }
+
+  plotStage.addChild(stars);
 }
 
 function drawHighlight(toCanvas: ToCanvasFn, pt: Point | null, arm = 1) {
@@ -491,52 +395,133 @@ function drawHighlight(toCanvas: ToCanvasFn, pt: Point | null, arm = 1) {
   const pulse = playing ? 1.0 + 0.25 * Math.sin(performance.now() / 120) : 1.0;
   const r = Math.max(baseRadius + 4, baseRadius * 2.0) * pulse;
 
-  ctx.save();
-  ctx.shadowColor = "rgba(255,255,255,0.9)";
-  ctx.shadowBlur = 18;
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.fillStyle = "rgba(255,255,255,0.22)";
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, TWO_PI);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle = "rgba(0,0,0,0.78)";
-  ctx.strokeStyle = "rgba(255,255,255,0.75)";
-  ctx.lineWidth = 1;
   const label = `i=${pt.i}`;
-  ctx.font = "14px system-ui, sans-serif";
-  const w = ctx.measureText(label).width + 14;
+  const highlight = new Graphics();
+  highlight
+    .circle(x, y, r)
+    .fill({ color: 0xffffff, alpha: 0.22 })
+    .stroke({ color: 0xffffff, width: 3, alpha: 0.95 });
+  plotStage.addChild(highlight);
+  const text = new Text({ text: label, style: new TextStyle({ fill: 0xffffff, fontSize: 14 }) });
+  const w = text.width + 14;
   const h = 24;
   const lx = x + r + 8;
   const ly = y - r - 4;
-  roundedRect(ctx, lx, ly, w, h, 8);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = "#ffffff";
-  ctx.textBaseline = "middle";
-  ctx.fillText(label, lx + 7, ly + h / 2);
-  ctx.restore();
+  const box = new Graphics();
+  box
+    .roundRect(lx, ly, w, h, 8)
+    .fill({ color: 0x000000, alpha: 0.78 })
+    .stroke({ color: 0xffffff, width: 1, alpha: 0.75 });
+  text.position.set(lx + 7, ly + 4);
+  plotStage.addChild(box, text);
 }
 
-function roundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
+type StarAnchor = { x: number; y: number; r: number };
+type Particle = { sprite: Sprite; halo: Sprite };
+
+const PARTICLE_COUNT = 2000;
+// Warm dust: each particle gets a tint somewhere between pale gold and amber.
+const PARTICLE_TINTS = [0xfff6d0, 0xffe9a8, 0xffd980, 0xffc85c, 0xfff0bb];
+let starAnchors: StarAnchor[] = [];
+// Cumulative r² weights, so a star's share of the dust grows with its radius.
+let anchorWeights: number[] = [];
+let particles: Particle[] = [];
+// The dust is static, so it is only re-scattered when the geometry it sits on changes.
+let particleLayoutKey = "";
+
+function pickAnchor(): number {
+  const total = anchorWeights[anchorWeights.length - 1];
+  const target = Math.random() * total;
+  let lo = 0;
+  let hi = anchorWeights.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (anchorWeights[mid] < target) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+// Concentric fills approximate a radial falloff; `rings` and `coreAlpha` set how tight it is.
+function makeParticleTexture(rings: number, ringAlpha: number, core: number): Texture {
+  const radius = PARTICLE_TEXTURE_RADIUS;
+  const dot = new Graphics();
+  for (let i = rings; i >= 1; i--)
+    dot.circle(radius, radius, (radius * i) / rings).fill({ color: 0xffffff, alpha: ringAlpha });
+  if (core > 0) dot.circle(radius, radius, radius * core).fill({ color: 0xffffff, alpha: 1 });
+  const texture = pixiApp.renderer.generateTexture({ target: dot, resolution: 2 });
+  dot.destroy();
+  return texture;
+}
+
+const PARTICLE_TEXTURE_RADIUS = 16;
+// Crisp mote — currently hidden, see placeParticle.
+const PARTICLE_TEXTURE = makeParticleTexture(6, 0.3, 0.22);
+// …and the wide, coreless bloom that sits behind it.
+const HALO_TEXTURE = makeParticleTexture(10, 0.1, 0);
+const HALO_SCALE = 14;
+
+function placeParticle(p: Particle) {
+  if (starAnchors.length === 0) {
+    p.sprite.visible = false;
+    p.halo.visible = false;
+    return;
+  }
+
+  const index = pickAnchor();
+  const anchor = starAnchors[index];
+  // Dust hugs its star much more tightly toward the end of the arms.
+  const spread = 1 - 0.85 * (index / Math.max(1, starAnchors.length - 1));
+  const angle = Math.random() * TWO_PI;
+  const distance = anchor.r * (0.8 + Math.random() * 1.5) * spread;
+  const x = anchor.x + Math.cos(angle) * distance;
+  const y = anchor.y + Math.sin(angle) * distance;
+  const size = Math.max(0.35, anchor.r * (0.06 + Math.random() * 0.1));
+  const tint = PARTICLE_TINTS[Math.floor(Math.random() * PARTICLE_TINTS.length)];
+
+  // Wide and faint: the glow reads as ambient haze rather than individual specks.
+  p.halo.visible = true;
+  p.halo.tint = tint;
+  p.halo.position.set(x, y);
+  p.halo.alpha = 0.02 + Math.random() * 0.03;
+  p.halo.scale.set((size * HALO_SCALE) / PARTICLE_TEXTURE_RADIUS);
+
+  // The mote's centre is temporarily hidden — glow only.
+  p.sprite.visible = false;
+  p.sprite.tint = tint;
+  p.sprite.position.set(x, y);
+  p.sprite.alpha = 0.6;
+  p.sprite.scale.set(size / PARTICLE_TEXTURE_RADIUS);
+}
+
+// Re-scatter the dust only when the star layout it hangs off has actually moved.
+function layoutParticlesIfNeeded(key: string) {
+  if (key === particleLayoutKey) return;
+  particleLayoutKey = key;
+  for (const p of particles) placeParticle(p);
+}
+
+function initParticles() {
+  // Two sub-layers so every halo draws behind every mote, and each stays one batch.
+  const haloLayer = new Container();
+  const coreLayer = new Container();
+  particleLayer.addChild(haloLayer, coreLayer);
+
+  particles = Array.from({ length: PARTICLE_COUNT }, () => {
+    const sprite = new Sprite(PARTICLE_TEXTURE);
+    sprite.anchor.set(0.5);
+    sprite.blendMode = "add";
+    sprite.visible = false;
+    coreLayer.addChild(sprite);
+
+    const halo = new Sprite(HALO_TEXTURE);
+    halo.anchor.set(0.5);
+    halo.blendMode = "add";
+    halo.visible = false;
+    haloLayer.addChild(halo);
+
+    return { sprite, halo } satisfies Particle;
+  });
 }
 
 function selectedMode() {
@@ -615,7 +600,7 @@ function playLoop(timestamp: number) {
     changed = true;
   }
 
-  if (changed) updateWatch();
+  if (changed) updateWatchText();
   requestRender();
   animationHandle = requestAnimationFrame(playLoop);
 }
@@ -663,10 +648,6 @@ function computeNotes() {
 }
 
 // React UI state plumbing (watch/status live in React; canvas draw live here)
-const uiStateRef = { current: { highlightMode: "all" } };
-
-let setUiWatch: (watch: UiWatch) => void = () => {};
-
 function updateWatchText() {
   const next: UiWatch = (() => {
     if (!data || !data.points || data.points.length === 0) {
@@ -685,27 +666,7 @@ function updateWatchText() {
       eta: formatValue(pt.eta1, 6),
     };
   })();
-  setUiWatch(next);
-}
-
-function updateWatch() {
-  if (!watch || !watch.index) return;
-
-  if (!data || !data.points || data.points.length === 0) {
-    watch.index.textContent = "—";
-    watch.R.textContent = "—";
-    watch.theta.textContent = "—";
-    watch.step.textContent = "—";
-    watch.eta.textContent = "—";
-    return;
-  }
-
-  const pt = getAvailablePoint(highlightedIndex);
-  watch.index.textContent = String(pt.i);
-  watch.R.textContent = formatValue(pt.R1, 6);
-  watch.theta.textContent = formatValue(pt.thetaMod, 6);
-  watch.step.textContent = formatValue(pt.stepDist, 6);
-  watch.eta.textContent = formatValue(pt.eta1, 6);
+  updateUiWatch(next);
 }
 
 // function resetSimulation() {
@@ -717,7 +678,7 @@ function updateWatch() {
 //   requestRender();
 // }
 
-function setHighlightMode(nextMode: string) {
+function setHighlightMode(nextMode: "all" | "positive" | "negative") {
   uiStateRef.current.highlightMode = nextMode;
   ensureHighlightedPointMatchesMode();
   updateWatchText();
@@ -745,170 +706,16 @@ function computeIndicies() {
   ];
 }
 
-function SpiralControlsPanel() {
-  const [sliders, setSliders] = useState(() => ({ ...state }));
-  const [highlightMode, setHighlightModeState] = useState(uiStateRef.current.highlightMode);
-  const [watchState, setWatchStateLocal] = useState({
-    index: "—",
-    R: "—",
-    theta: "—",
-    step: "—",
-    eta: "—",
-  });
-
-  useEffect(() => {
-    bindWatchElements();
-    setUiWatch = setWatchStateLocal;
-
-    updateWatchText();
-  }, []);
-
-  const sliderControls = extraSliderDefs.map((def) => {
-    const key = def.key as keyof typeof sliders;
-    if (!SHOWN_SLIDERS.includes(key)) return null;
-    const v = sliders[key];
-    return (
-      <div className="control" key={def.key}>
-        <div className="control-label">
-          <label htmlFor={`slider-${def.key}`}>{def.label}</label>
-          <span className="value">{def.format ? def.format(state[key]) : state[key]}</span>
-        </div>
-
-        <input
-          type="range"
-          id={`slider-${def.key}`}
-          min={String(def.min)}
-          max={String(def.max)}
-          step={String(def.step)}
-          value={String(v)}
-          onInput={(e) => {
-            const next = +e.currentTarget.value;
-            setSliders((prev) => ({ ...prev, [def.key]: next }));
-            state[def.key as keyof typeof state] = next;
-            scheduleRecompute();
-          }}
-        />
-      </div>
-    );
-  });
-
-  return (
-    <>
-      <h2 className="group-title">Variables</h2>
-      <div>{sliderControls}</div>
-
-      <div className="button-row">
-        <button type="button" onClick={() => play()}>
-          Listen to your galaxy
-        </button>
-        <button type="button" className="secondary" onClick={() => exportPdf()}>
-          Export score
-        </button>
-      </div>
-
-      <fieldset className="radio-card">
-        <legend>Highlight mode</legend>
-
-        <label>
-          <input
-            type="radio"
-            name="highlightMode"
-            value="all"
-            checked={highlightMode === "all"}
-            onChange={() => {
-              setHighlightModeState("all");
-              setHighlightMode("all");
-            }}
-          />
-          Sequential: every i
-        </label>
-
-        <label>
-          <input
-            type="radio"
-            name="highlightMode"
-            value="positive"
-            checked={highlightMode === "positive"}
-            onChange={() => {
-              setHighlightModeState("positive");
-              setHighlightMode("positive");
-            }}
-          />
-          Only positive ηᵢ = Ggᵢ·a
-          <sub>dj,i</sub>
-        </label>
-
-        <label>
-          <input
-            type="radio"
-            name="highlightMode"
-            value="negative"
-            checked={highlightMode === "negative"}
-            onChange={() => {
-              setHighlightModeState("negative");
-              setHighlightMode("negative");
-            }}
-          />
-          Only negative ηᵢ = Ggᵢ·a
-          <sub>dj,i</sub>
-        </label>
-      </fieldset>
-
-      <section className="watch" aria-label="Parameter watch">
-        <h2>Parameter watch</h2>
-
-        <div className="metric">
-          <span className="name">Current index i</span>
-          <span className="number" id="watchIndex">
-            {watchState.index}
-          </span>
-        </div>
-
-        <div className="metric">
-          <span className="name">Distance from center Rᵢ</span>
-          <span className="number" id="watchR">
-            {watchState.R}
-          </span>
-        </div>
-
-        <div className="metric">
-          <span className="name">θᵢ mod 2π</span>
-          <span className="number" id="watchTheta">
-            {watchState.theta}
-          </span>
-        </div>
-
-        <div className="metric">
-          <span className="name">||Pᵢ − Pᵢ₊₁||</span>
-          <span className="number" id="watchStep">
-            {watchState.step}
-          </span>
-        </div>
-
-        <div className="metric">
-          <span className="name">
-            ηᵢ = Ggᵢ·a<sub>dj,i</sub>
-          </span>
-          <span className="number" id="watchEta">
-            {watchState.eta}
-          </span>
-        </div>
-      </section>
-
-      {/* <div className="status" id="status">
-        {statusText}
-      </div> */}
-    </>
-  );
-}
-
 window.addEventListener("resize", () => requestRender());
 
-const controlsPanel = document.querySelector("section.panel.controls");
+const controlsPanel = document.querySelector<HTMLElement>("section.panel.controls");
 if (!controlsPanel) throw new Error("Missing controls panel section: section.panel.controls");
 controlsPanel.replaceChildren();
-const root = createRoot(controlsPanel);
-root.render(<SpiralControlsPanel />);
+mountControls(controlsPanel, {
+  onPlay: play,
+  onHighlightModeChange: setHighlightMode,
+  onScheduleRecompute: scheduleRecompute,
+});
 
 data = computeSpiral();
 computeNotes();
@@ -916,4 +723,5 @@ console.log("computing indicies");
 computeIndicies();
 ensureHighlightedPointMatchesMode();
 updateWatchText();
+initParticles();
 requestRender();

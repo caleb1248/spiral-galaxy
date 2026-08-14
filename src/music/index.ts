@@ -1,9 +1,6 @@
-import { generateMidiFile } from "./midi/merge-tracks";
 import * as Tone from "tone";
-import { renderPdfFromXML } from "../renderer/render";
-import { state } from "../state";
-import { downloadFile, fetchText, findNearest } from "../utils";
-import { patchKeySignature } from "./midi/patch-key-signature";
+import { renderPdfFromXML } from "../lib/webmscore";
+import { downloadFile, fetchText, findNearest } from "../lib/utils";
 import { populateComposition } from "./musicxml";
 import type { TemplateData } from "./template-data";
 
@@ -12,6 +9,7 @@ const chromaticScale = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a
 const cMajorMidiNotes = [0, 2, 4, 5, 7, 9, 11];
 const chromaticMidiNotes = Array.from({ length: 12 }, (_, i) => i);
 
+// @ts-ignore not used now, may use later.
 function adjustNoteToScale(note: number, scale: number[]): number {
   const octave = Math.floor(note / 12);
   const noteInScale = note % 12;
@@ -28,30 +26,6 @@ function convertNote(number: number, scale: number[] = chromaticMidiNotes): stri
   const nearestNote = findNearest(number % 12, scale);
 
   return `${chromaticScale[nearestNote]}${octave}`;
-}
-
-function getMidiData() {
-  const tracks = [
-      arm1.map((note) => ({
-        note: adjustNoteToScale(note, cMajorMidiNotes),
-        duration: 1 / +state.npb,
-      })),
-      arm2.toReversed().map((note) => ({
-        note: adjustNoteToScale(note, cMajorMidiNotes),
-        duration: 1 / +state.npb,
-      })),
-    ],
-    names = ["Arm 1", "Arm 2"],
-    channels = [0, 1];
-
-  const midiData = generateMidiFile(tracks, {
-    bpm: state.tempo as number,
-    npb: state.npb as number,
-    names,
-    channels,
-  });
-
-  return midiData.toArray() as Uint8Array<ArrayBuffer>;
 }
 
 const piano = new Tone.Sampler({

@@ -1,4 +1,4 @@
-import { findNearest } from "../lib/utils";
+import { findNearest } from "../utils";
 import type { TemplateData } from "./template-data";
 import { constants } from "./constants";
 

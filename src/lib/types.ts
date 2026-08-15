@@ -42,8 +42,11 @@ interface State {
   tempo: number;
   npb: number;
   seed: number;
-  low: number;
-  hi: number;
+  // Arm 1 and Arm 2 note ranges in MIDI note numbers
+  arm1_low: number;
+  arm1_high: number;
+  arm2_low: number;
+  arm2_high: number;
 }
 
 interface Bounds {

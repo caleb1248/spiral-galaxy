@@ -53,7 +53,6 @@ function downloadFile(contents: Uint8Array<ArrayBuffer>, filename: string, mimeT
 function waitForImageToLoad(image: HTMLImageElement, src: string): Promise<void> {
   return new Promise((resolve, reject) => {
     image.onload = () => {
-      // alert('load!');
       resolve();
     };
     image.onerror = () => reject(new Error("Failed to load image"));

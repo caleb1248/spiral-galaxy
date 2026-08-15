@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { extraSliderDefs, SHOWN_SLIDERS, state } from "./state";
-import { exportPdf } from "../music";
+import { exportPdf } from "./music";
 import type { UiWatch } from "./types";
 
 export type HighlightMode = "all" | "positive" | "negative";
@@ -49,7 +49,9 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
     return (
       <div className="control" key={def.key}>
         <div className="control-label">
-          <label htmlFor={`slider-${def.key}`}>{def.label}</label>
+          <label htmlFor={`slider-${def.key}`} style={{ maxWidth: "200px" }}>
+            {def.label}
+          </label>
           <span className="value">{def.format ? def.format(state[key]) : state[key]}</span>
         </div>
 

@@ -1,9 +1,14 @@
-import type { State } from './types';
+import { convertNote } from "./music";
+import type { State } from "./types";
+
+function formatNote(v: number): string {
+  return convertNote(v).toUpperCase();
+}
 
 const extraSliderDefs = [
   {
-    key: 'A',
-    label: 'Arm offset',
+    key: "A",
+    label: "Arm offset",
     min: 0.1,
     max: 2.0,
     step: 0.01,
@@ -11,8 +16,8 @@ const extraSliderDefs = [
     digits: 3,
   },
   {
-    key: 'B',
-    label: 'Scale factor',
+    key: "B",
+    label: "Scale factor",
     min: 1.1,
     max: 10.0,
     step: 0.1,
@@ -20,8 +25,8 @@ const extraSliderDefs = [
     digits: 3,
   },
   {
-    key: 'N',
-    label: 'Windings',
+    key: "N",
+    label: "Windings",
     min: 1,
     max: 50,
     step: 1,
@@ -29,8 +34,8 @@ const extraSliderDefs = [
     digits: 0,
   },
   {
-    key: 'C',
-    label: 'Angular coverage',
+    key: "C",
+    label: "Angular coverage",
     min: 0.1,
     max: 2.0,
     step: 0.01,
@@ -38,8 +43,8 @@ const extraSliderDefs = [
     digits: 3,
   },
   {
-    key: 'd',
-    label: 'Noise std',
+    key: "d",
+    label: "Noise std",
     min: 0.0,
     max: 0.5,
     step: 0.001,
@@ -47,8 +52,8 @@ const extraSliderDefs = [
     digits: 4,
   },
   {
-    key: 'C_t',
-    label: 'Transition',
+    key: "C_t",
+    label: "Transition",
     min: 0.0,
     max: 1.0,
     step: 0.0001,
@@ -56,8 +61,8 @@ const extraSliderDefs = [
     digits: 4,
   },
   {
-    key: 'p',
-    label: 'Number of points',
+    key: "p",
+    label: "Number of points",
     min: 20,
     max: 200,
     step: 20,
@@ -66,8 +71,8 @@ const extraSliderDefs = [
   },
 
   {
-    key: 's_min',
-    label: 'Minimum circle area',
+    key: "s_min",
+    label: "Minimum circle area",
     min: 0.25,
     max: 80,
     step: 0.25,
@@ -75,8 +80,8 @@ const extraSliderDefs = [
     digits: 2,
   },
   {
-    key: 's_max',
-    label: 'Maximum circle area',
+    key: "s_max",
+    label: "Maximum circle area",
     min: 1,
     max: 320,
     step: 1,
@@ -84,8 +89,8 @@ const extraSliderDefs = [
     digits: 1,
   },
   {
-    key: 'R_d',
-    label: 'Circle size',
+    key: "R_d",
+    label: "Circle size",
     min: 0.01,
     max: 5.0,
     step: 0.01,
@@ -93,8 +98,8 @@ const extraSliderDefs = [
     digits: 3,
   },
   {
-    key: 'tempo',
-    label: 'Tempo (Beats / Minute)',
+    key: "tempo",
+    label: "Tempo (Beats / Minute)",
     min: 40,
     max: 240,
     step: 1,
@@ -102,18 +107,18 @@ const extraSliderDefs = [
     digits: 0,
   },
   {
-    key: 'npb',
-    label: 'Notes per beat',
+    key: "npb",
+    label: "Notes per beat",
     min: 1,
     max: 8,
     step: 1,
     value: 2,
     digits: 0,
-    format: (v: number) => '1/' + 2 ** v,
+    format: (v: number) => "1/" + 2 ** v,
   },
   {
-    key: 'seed',
-    label: 'Random seed',
+    key: "seed",
+    label: "Random seed",
     min: 0,
     max: 1000,
     step: 1,
@@ -121,22 +126,44 @@ const extraSliderDefs = [
     digits: 0,
   },
   {
-    key: 'low',
-    label: 'lower octave',
-    min: 1,
-    max: 4,
+    key: "arm1_low",
+    label: "Arm 1: lowest note (C4 is middle C, piano ranges from A0 to C8)",
+    min: 0,
+    max: 127,
     step: 1,
-    value: 2,
+    value: 48,
     digits: 0,
+    format: (v: number) => formatNote(v),
   },
   {
-    key: 'hi',
-    label: 'upper octave',
-    min: 3,
-    max: 7,
+    key: "arm1_high",
+    label: "Arm1: highest note",
+    min: 0,
+    max: 127,
     step: 1,
-    value: 5,
+    value: 84,
     digits: 0,
+    format: (v: number) => formatNote(v),
+  },
+  {
+    key: "arm2_low",
+    label: "Arm2: lowest note",
+    min: 0,
+    max: 127,
+    step: 1,
+    value: 21,
+    digits: 0,
+    format: (v: number) => formatNote(v),
+  },
+  {
+    key: "arm2_high",
+    label: "Arm2: highest note",
+    min: 0,
+    max: 127,
+    step: 1,
+    value: 45,
+    digits: 0,
+    format: (v: number) => formatNote(v),
   },
 ];
 
@@ -144,7 +171,11 @@ function getSliderDef(key: string) {
   return extraSliderDefs.find((def) => def.key === key)!;
 }
 
-const SHOWN_SLIDERS = ['A', 'B', 'N', 'C', 'd'];
+const SHOULD_HIDE_UNEXPOSED_SLIDERS = true;
+
+const SHOWN_SLIDERS = SHOULD_HIDE_UNEXPOSED_SLIDERS
+  ? ["A", "B", "N", "C", "d", "p", "arm1_low", "arm1_high", "arm2_low", "arm2_high"]
+  : extraSliderDefs.map((def) => def.key);
 
 const initialState: State = Object.fromEntries(
   extraSliderDefs.map((def) => [def.key, def.value]),

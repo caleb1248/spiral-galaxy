@@ -1,9 +1,9 @@
 import "./style.css";
 import { Application, Container, Graphics, Sprite, Text, TextStyle, Texture } from "pixi.js";
 import { extraSliderDefs, state } from "./lib/state";
-import { setNotes, playNote, indicies } from "./music";
+import { setNotes, playNote, indicies } from "./lib/music";
 import { mountControls, uiStateRef, updateWatch as updateUiWatch } from "./lib/ui";
-import { midiNote, scale, waitForImageToLoad } from "./lib/utils";
+import { /*midiNote,*/ scale, waitForImageToLoad } from "./lib/utils";
 import starfieldImageUrl from "./assets/starfield.png";
 import type { SpiralData, Point, Bounds, ToCanvasFn, UiWatch } from "./lib/types";
 import {
@@ -635,11 +635,15 @@ function computeNotes() {
   const minArm1 = Math.min(...mappedArm1);
   const minArm2 = Math.min(...mappedArm2);
 
-  const targetArm1Min = midiNote(0, 4);
-  const targetArm1Max = midiNote(0, 7);
+  // const targetArm1Min = midiNote(0, 4);
+  // const targetArm1Max = midiNote(0, 7);
+  // const targetArm2Min = midiNote(10, 0);
+  // const targetArm2Max = midiNote(10, 3);
 
-  const targetArm2Min = midiNote(10, 0);
-  const targetArm2Max = midiNote(10, 3);
+  const targetArm1Min = state.arm1_low;
+  const targetArm1Max = state.arm1_high;
+  const targetArm2Min = state.arm2_low;
+  const targetArm2Max = state.arm2_high;
 
   const scaleArm1 = scale(minArm1, maxArm1, targetArm1Min, targetArm1Max, mappedArm1);
   const scaleArm2 = scale(minArm2, maxArm2, targetArm2Min, targetArm2Max, mappedArm2);

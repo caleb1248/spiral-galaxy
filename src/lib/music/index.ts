@@ -1,8 +1,10 @@
 import * as Tone from "tone";
-import { renderPdfFromXML } from "../lib/webmscore";
-import { downloadFile, fetchText, findNearest } from "../lib/utils";
+import { renderPdfFromXML } from "../webmscore";
+import { downloadFile, fetchText, findNearest } from "../utils";
 import { populateComposition } from "./musicxml";
 import type { TemplateData } from "./template-data";
+import { generateMidiFile } from "./midi/merge-tracks";
+import { patchKeySignature } from "./midi/patch-key-signature";
 
 const chromaticScale = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
 
@@ -20,7 +22,7 @@ function adjustNoteToScale(note: number, scale: number[]): number {
 /**
  * Converts a midi note to the equivalent string representation.
  */
-function convertNote(number: number, scale: number[] = chromaticMidiNotes): string {
+export function convertNote(number: number, scale: number[] = chromaticMidiNotes): string {
   // The number is a midi note which is chromatic. Use findNearest to approximate it to the nearest note in the provided scale.
   const octave = Math.floor(number / 12);
   const nearestNote = findNearest(number % 12, scale);
@@ -95,3 +97,20 @@ export const indicies = [[], []] as [(number | null)[], (number | null)[]];
 
 const TEMPLATE_XML = await fetchText("/templates/template-1.musicxml");
 const TEMPLATE_DATA = JSON.parse(await fetchText("/templates/template-1.json")) as TemplateData;
+
+// @ts-ignore
+globalThis.exportMidi = () => {
+  const midi = generateMidiFile(
+    [
+      arm1.map((note) => ({ note: adjustNoteToScale(note, cMajorMidiNotes), duration: 1 })),
+      arm2
+        .map((note) => ({ note: adjustNoteToScale(note, cMajorMidiNotes), duration: 1 }))
+        .reverse(),
+    ],
+    { names: ["Arm 1", "Arm 2"], bpm: 120, npb: 2 },
+  );
+
+  const patched = patchKeySignature(midi.toArray() as Uint8Array<ArrayBuffer>);
+
+  downloadFile(patched, "galaxy.mid", "audio/midi");
+};

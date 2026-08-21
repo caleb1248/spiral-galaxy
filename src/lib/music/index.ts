@@ -3,12 +3,12 @@ import { renderPdfFromXML } from "../webmscore";
 import { downloadFile, fetchText, findNearest } from "../utils";
 import { populateComposition } from "./xml/main";
 import type { TemplateData } from "./xml/template-data";
+import type { Note } from "../types";
 import { generateMidiFile } from "./midi/merge-tracks";
 import { patchKeySignature } from "./midi/patch-key-signature";
+import { constants } from "./constants";
+import formatXml from "../debug-format-xml";
 
-const chromaticScale = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
-
-const cMajorMidiNotes = [0, 2, 4, 5, 7, 9, 11];
 const chromaticMidiNotes = Array.from({ length: 12 }, (_, i) => i);
 
 // @ts-ignore not used now, may use later.
@@ -27,7 +27,7 @@ export function convertNote(number: number, scale: number[] = chromaticMidiNotes
   const octave = Math.floor(number / 12);
   const nearestNote = findNearest(number % 12, scale);
 
-  return `${chromaticScale[nearestNote]}${octave}`;
+  return `${constants.CHROMATIC_SCALE[nearestNote]}${octave}`;
 }
 
 const piano = new Tone.Sampler({
@@ -81,14 +81,27 @@ function _playNote(index: number | null, speed: number, arm: 1 | 2 = 1) {
 
   // David wanted the second arm to be played from high to low but from middle to edge.
   // This is not possible with the way the galaxy points are designed, so we manually reverse the second arm's notes during playback only.
-  const note = convertNote(notes[arm === 1 ? index : notes.length - 1 - index], cMajorMidiNotes);
+  const note = convertNote(
+    notes[arm === 1 ? index : notes.length - 1 - index],
+    constants.C_MAJOR_SCALE,
+  );
   piano.triggerAttackRelease(note, 1 / speed, Tone.now());
 }
 
-export async function exportPdf() {
-  const xml = populateComposition(TEMPLATE_XML, TEMPLATE_DATA, arm1, arm2.toReversed()); // reverse the arm2 for contrary motion
+/** The galaxy gives one point per eighth note; features are what turn them into longer notes. */
+function toNotes(midiNotes: number[]): Note[] {
+  return midiNotes.map((midi) => ({ midi, duration: 1 }));
+}
 
-  // downloadFile(new TextEncoder().encode(xml), "galaxy.musicxml", "application/xml");
+export async function exportPdf() {
+  const xml = populateComposition(
+    TEMPLATE_XML,
+    TEMPLATE_DATA,
+    toNotes(arm1),
+    toNotes(arm2.toReversed()), // reverse the arm2 for contrary motion
+  );
+
+  // downloadFile(new TextEncoder().encode(formatXml(xml)), "galaxy.musicxml", "application/xml");
   const pdfData = await renderPdfFromXML(xml);
   downloadFile(pdfData, "galaxy.pdf", "application/pdf");
 }
@@ -102,9 +115,9 @@ const TEMPLATE_DATA = JSON.parse(await fetchText("/templates/template-1.json")) 
 globalThis.exportMidi = () => {
   const midi = generateMidiFile(
     [
-      arm1.map((note) => ({ note: adjustNoteToScale(note, cMajorMidiNotes), duration: 1 })),
+      arm1.map((note) => ({ note: adjustNoteToScale(note, constants.C_MAJOR_SCALE), duration: 1 })),
       arm2
-        .map((note) => ({ note: adjustNoteToScale(note, cMajorMidiNotes), duration: 1 }))
+        .map((note) => ({ note: adjustNoteToScale(note, constants.C_MAJOR_SCALE), duration: 1 }))
         .reverse(),
     ],
     { names: ["Arm 1", "Arm 2"], bpm: 120, npb: 2 },

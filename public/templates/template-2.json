@@ -1,0 +1,15 @@
+{
+  "notesPerMeasure": 10,
+  "insertions": [
+    {
+      "measure": 1,
+      "hand": "right",
+      "features": { "range": { "low": 48, "high": 84 }, "duplicateNotes": "remove" }
+    },
+    {
+      "measure": 2,
+      "hand": "right",
+      "features": { "range": { "low": 48, "high": 84 }, "duplicateNotes": "remove" }
+    }
+  ]
+}

@@ -10,7 +10,5 @@ export interface TemplateData {
 export interface Insertion {
   measure: number;
   hand: "right" | "left";
-  omit?: number[];
-  keySignatureFifths?: number;
   features?: FeaturesConfig;
 }

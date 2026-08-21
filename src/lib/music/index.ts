@@ -1,8 +1,8 @@
 import * as Tone from "tone";
 import { renderPdfFromXML } from "../webmscore";
 import { downloadFile, fetchText, findNearest } from "../utils";
-import { populateComposition } from "./musicxml";
-import type { TemplateData } from "./template-data";
+import { populateComposition } from "./xml/main";
+import type { TemplateData } from "./xml/template-data";
 import { generateMidiFile } from "./midi/merge-tracks";
 import { patchKeySignature } from "./midi/patch-key-signature";
 

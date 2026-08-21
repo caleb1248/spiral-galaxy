@@ -1,7 +1,10 @@
+import type { FeaturesConfig } from "./features";
+
 export interface TemplateData {
   /** Eighth notes per measure */
   notesPerMeasure: number;
   insertions: Insertion[];
+  defaultFeatures?: FeaturesConfig;
 }
 
 export interface Insertion {
@@ -9,4 +12,5 @@ export interface Insertion {
   hand: "right" | "left";
   omit?: number[];
   keySignatureFifths?: number;
+  features?: FeaturesConfig;
 }

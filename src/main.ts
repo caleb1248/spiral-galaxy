@@ -459,7 +459,7 @@ const PARTICLE_TEXTURE_RADIUS = 16;
 const PARTICLE_TEXTURE = makeParticleTexture(6, 0.3, 0.22);
 // …and the wide, coreless bloom that sits behind it.
 const HALO_TEXTURE = makeParticleTexture(10, 0.1, 0);
-const HALO_SCALE = 14;
+const HALO_SCALE = 20;
 
 function placeParticle(p: Particle) {
   if (starAnchors.length === 0) {

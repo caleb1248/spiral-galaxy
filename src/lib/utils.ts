@@ -55,6 +55,7 @@ function waitForImageToLoad(image: HTMLImageElement, src: string): Promise<void>
     image.onload = () => {
       resolve();
     };
+
     image.onerror = () => reject(new Error("Failed to load image"));
 
     image.src = src;

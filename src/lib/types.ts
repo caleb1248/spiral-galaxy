@@ -28,6 +28,12 @@ interface Point {
   stepDist: number;
 }
 
+interface Note {
+  /** If null, the note is a rest */
+  midi: number | null;
+  duration: number;
+}
+
 interface State {
   A: number;
   B: number;
@@ -75,4 +81,4 @@ interface UiWatch {
   eta: string;
 }
 
-export type { Point, Bounds, SpiralData, ToCanvasFn, State, UiWatch };
+export type { Point, Note, Bounds, SpiralData, ToCanvasFn, State, UiWatch };

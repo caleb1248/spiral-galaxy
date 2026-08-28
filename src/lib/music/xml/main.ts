@@ -2,8 +2,7 @@ import type { TemplateData } from "./template-data";
 import { constants } from "../constants";
 import type { Note } from "../../types";
 import { getFeatureHandlers, mergeFeatureConfigs, type Feature } from "./features";
-import { noteTypeForDuration, type NoteType } from "./durations";
-import { isRest, NOTE_CHILD_ORDER, removeChildren, setChildText, textOf } from "./elements";
+import { isRest, removeChildren, textOf } from "./elements";
 
 const parser = new DOMParser();
 
@@ -34,9 +33,9 @@ export function populateComposition(
   for (const insertion of insertions) {
     // Each insertion works on its own copy, because features rewrite the array in place and
     // several insertions replay the same arm.
-    const notes: Note[] = (insertion.hand === "right" ? arm1 : arm2).map(({ midi, duration }) => ({
-      midi: midi === null ? null : Math.round(midi),
-      duration,
+    const notes: Note[] = (insertion.hand === "right" ? arm1 : arm2).map((note) => ({
+      ...note,
+      midi: note.midi === null ? null : Math.round(note.midi),
     }));
 
     const config = mergeFeatureConfigs(defaultFeatures, insertion.features ?? {});
@@ -106,32 +105,29 @@ function getDivisionsPerEighth(composition: Document): number {
  */
 function splitIntoMeasures(notes: Note[], notesPerMeasure: number): Note[][] {
   const measures: Note[][] = [];
-  let current: Note[] = [];
-  let filled = 0;
+  let currentMeasure: Note[] = [];
+  let currentOffset = 0;
 
-  for (const note of notes) {
-    if (!Number.isInteger(note.duration) || note.duration < 1) {
-      throw new Error(`A note duration of ${note.duration} eighths is not a whole eighth note.`);
-    }
-
-    if (filled + note.duration > notesPerMeasure) {
+  for (let i = 0; i < notes.length; ) {
+    const note = notes[i];
+    if (currentOffset > notesPerMeasure) {
       throw new Error(
-        `A note of ${note.duration} eighths at position ${filled} would cross the barline of a ` +
-          `${notesPerMeasure}-eighth measure. Features must not merge notes across a measure.`,
+        `The notes for measure ${measures.length + 1} exceed the expected length of ` +
+          `${notesPerMeasure} eighth notes. Check the subset feature to make sure the noteLengths add up to notesPerMeasure for each measure.`,
       );
     }
 
-    current.push(note);
-    filled += note.duration;
-
-    if (filled === notesPerMeasure) {
-      measures.push(current);
-      current = [];
-      filled = 0;
+    if (currentOffset === notesPerMeasure) {
+      // Start a new measure if necessary.
+      measures.push(currentMeasure);
+      currentMeasure = [];
+      currentOffset = 0;
     }
-  }
 
-  if (current.length > 0) measures.push(current);
+    currentMeasure.push(note);
+    currentOffset += note.length;
+    i++;
+  }
 
   return measures;
 }
@@ -147,114 +143,26 @@ interface MeasureOptions {
 
 /** writes a 1-measure section of a snippet*/
 function populateMeasure(measure: Element, notes: Note[], options: MeasureOptions) {
-  const { hand, measureNumber, divisionsPerEighth, features } = options;
+  const { hand, measureNumber, features } = options;
   const slots = getHandSlots(measure, options);
 
-  if (options.preserveTemplateRhythm) {
-    populateTemplateRhythm(slots, notes, options);
-    return;
-  }
-
-  const beamGroups = readBeamGroups(slots);
-
-  /** Duration in eighths written into each slot we filled, keyed by slot index. */
-  const written = new Map<number, number>();
-  /** Slots taken over by a longer note, which no longer hold a note of their own. */
-  const absorbed = new Set<number>();
-
-  let slotIndex = 0;
-
-  for (const note of notes) {
-    if (slotIndex >= slots.length) {
-      throw new Error(
-        `Measure ${measureNumber} has only ${slots.length} ${hand}-hand note slots, which is ` +
-          `not enough for the notes being inserted.`,
-      );
-    }
-
-    const noteType = noteTypeForDuration(note.duration);
-    if (!noteType) {
-      throw new Error(
-        `A duration of ${note.duration} eighths cannot be written as a single note in measure ` +
-          `${measureNumber}.`,
-      );
-    }
-
-    const element = slots[slotIndex];
-    writeNote(element, note, noteType, divisionsPerEighth);
-    features.processNoteElement(element, { note, offsetInMeasure: slotIndex, measureNumber });
-
-    written.set(slotIndex, note.duration);
-    for (let i = 1; i < note.duration; i++) absorbed.add(slotIndex + i);
-
-    slotIndex += note.duration;
-  }
-
-  normalizeBeams(slots, beamGroups, written, absorbed);
-
-  for (const index of absorbed) slots[index].remove();
-}
-
-/**
- * Writes the notes into the template's own note elements, in order, leaving the rhythm the
- * template wrote exactly as it is: only the pitches and rests change, so the durations, beams and
- * ties the template carries stay put. A note covers as many slots as it says, which is how a
- * duration the template spells with several tied notes gets one pitch across all of them.
- */
-function populateTemplateRhythm(slots: Element[], notes: Note[], options: MeasureOptions) {
-  const { hand, measureNumber, features } = options;
-
-  let slotIndex = 0;
-  let offsetInMeasure = 0;
-
-  for (const note of notes) {
-    const covered = note.slots ?? 1;
-
-    if (slotIndex + covered > slots.length) {
-      throw new Error(
-        `Measure ${measureNumber} has only ${slots.length} ${hand}-hand notes, which is not ` +
-          `enough for the rhythm being written into it.`,
-      );
-    }
-
-    let coveredDuration = 0;
-
-    for (let i = 0; i < covered; i++) {
-      const element = slots[slotIndex + i];
-      coveredDuration += slotDuration(element, options);
-
-      if (note.midi === null) writeRest(element);
-      else writePitch(element, note.midi);
-
-      features.processNoteElement(element, { note, offsetInMeasure, measureNumber });
-    }
-
-    if (coveredDuration !== note.duration) {
-      throw new Error(
-        `A note of ${note.duration} eighths at position ${offsetInMeasure} of measure ` +
-          `${measureNumber} covers ${covered} of the template's ${hand}-hand notes, which are ` +
-          `${coveredDuration} eighths long. The rhythm has to match the template exactly.`,
-      );
-    }
-
-    slotIndex += covered;
-    offsetInMeasure += note.duration;
-  }
-}
-
-/** The length of a template note in eighth notes. */
-function slotDuration(element: Element, options: MeasureOptions): number {
-  const { measureNumber, divisionsPerEighth } = options;
-  const duration = Number(textOf(element, "duration"));
-
-  if (!Number.isInteger(duration / divisionsPerEighth)) {
+  if (slots.length !== notes.length) {
+    console.error(slots, notes);
     throw new Error(
-      `Measure ${measureNumber} has a note of ${duration} divisions, which is not a whole ` +
-        `number of eighth notes.`,
+      `Measure ${measureNumber} has ${slots.length} ${hand}-hand note slots, but the snippet ` +
+        `has ${notes.length} notes. The template and snippet must match in length.`,
     );
   }
 
-  return duration / divisionsPerEighth;
+  for (let i = 0; i < notes.length; i++) {
+    writeNote(slots[i], notes[i]);
+  }
+
+  for (let i = 0; i < notes.length; i++) {
+    features.processNoteElement(slots[i], { note: notes[i] });
+  }
+
+  normalizeBeams(slots);
 }
 
 /**
@@ -295,107 +203,19 @@ function getHandSlots(measure: Element, options: MeasureOptions): Element[] {
 }
 
 /**
- * Maps each slot to the beam group the template put it in, or null where the template leaves it
- * unbeamed. Groups run from a `begin` beam to the matching `end`.
- */
-function readBeamGroups(slots: Element[]): (number | null)[] {
-  const groups: (number | null)[] = [];
-  let current: number | null = null;
-  let nextGroup = 0;
-
-  for (const slot of slots) {
-    const beam = textOf(slot, "beam");
-
-    if (beam === "begin") current = nextGroup++;
-    groups.push(beam === null ? null : current);
-    if (beam === "end") current = null;
-  }
-
-  return groups;
-}
-
-/**
  * Rebuilds the beams across a measure's slots. Only a surviving eighth note that is not a rest
  * can carry a beam, so merging notes together or silencing them splits the template's groups
  * apart. Each remaining run of two or more beamable slots gets a fresh begin/continue/end, and
  * anything left on its own is unbeamed.
  */
-function normalizeBeams(
-  slots: Element[],
-  beamGroups: (number | null)[],
-  written: Map<number, number>,
-  absorbed: Set<number>,
-) {
-  let run: number[] = [];
-
-  const flush = () => {
-    if (run.length === 1) removeChildren(slots[run[0]], "beam");
-
-    if (run.length > 1) {
-      run.forEach((index, position) => {
-        const slot = slots[index];
-        removeChildren(slot, "beam");
-        setChildText(
-          slot,
-          "beam",
-          position === 0 ? "begin" : position === run.length - 1 ? "end" : "continue",
-          NOTE_CHILD_ORDER,
-        ).setAttribute("number", "1");
-      });
-    }
-
-    run = [];
-  };
-
-  for (let index = 0; index < slots.length; index++) {
-    // Untouched slots are eighth notes, as `getHandSlots` checks, so they default to a
-    // duration of one and can still join a run alongside the notes we wrote.
-    const beamable =
-      !absorbed.has(index) &&
-      beamGroups[index] !== null &&
-      !isRest(slots[index]) &&
-      (written.get(index) ?? 1) === 1;
-
-    if (!beamable) {
-      flush();
-      if (!absorbed.has(index)) removeChildren(slots[index], "beam");
-      continue;
-    }
-
-    if (run.length > 0 && beamGroups[index] !== beamGroups[run[run.length - 1]]) flush();
-    run.push(index);
-  }
-
-  flush();
+function normalizeBeams(slots: Element[]) {
+  // not implemented for now.
 }
 
 /** Replaces the contents of a template slot with `note`. */
-function writeNote(
-  element: Element,
-  note: Note,
-  noteType: NoteType,
-  divisionsPerEighth: number,
-): void {
-  const document = element.ownerDocument;
-
+function writeNote(element: Element, note: Note): void {
   if (note.midi === null) writeRest(element);
   else writePitch(element, note.midi);
-
-  setChildText(
-    element,
-    "duration",
-    (note.duration * divisionsPerEighth).toString(),
-    NOTE_CHILD_ORDER,
-  );
-  setChildText(element, "type", noteType.type, NOTE_CHILD_ORDER);
-
-  // A tie would join this note to a template pitch that is no longer there.
-  removeChildren(element, "tie");
-  removeChildren(element, "tied");
-
-  removeChildren(element, "dot");
-  const type = element.getElementsByTagName("type")[0];
-  for (let i = 0; i < noteType.dots; i++) type.after(document.createElement("dot"));
 }
 
 /** Turns a slot into a rest, dropping the markup that only makes sense on a sounding note. */

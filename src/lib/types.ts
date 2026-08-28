@@ -31,13 +31,8 @@ interface Point {
 interface Note {
   /** If null, the note is a rest */
   midi: number | null;
-  duration: number;
-  /**
-   * How many of the template's own note elements this note covers. Only the features that write
-   * to a rhythm the template already carries set it, for when the template spreads one duration
-   * across several tied notes.
-   */
-  slots?: number;
+  /** Used for measure splitting */
+  length: number;
 }
 
 interface State {

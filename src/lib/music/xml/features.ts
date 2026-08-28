@@ -3,7 +3,6 @@
 import type { Note } from "../../types";
 import { findNearest, scale } from "../../utils";
 import { constants } from "../constants";
-import { isExpressibleDuration } from "./durations";
 import { removeChildren } from "./elements";
 
 /** What a feature knows about the insertion it is being applied to. */
@@ -22,10 +21,6 @@ export interface NoteArrayContext {
 export interface NoteElementContext {
   /** The note data that was just written into the element. */
   note: Note;
-  /** Where the note starts within its measure, counted in eighth notes. */
-  offsetInMeasure: number;
-  /** The measure's number in the composition. */
-  measureNumber: number;
 }
 
 export interface Feature {
@@ -70,11 +65,14 @@ function copyFromArm(armNumber: number): Feature {
 function omit(positions: number[]): Feature {
   return {
     handleNoteArray(notes) {
-      let offset = 0;
+      for (const position of positions) {
+        if (position < 0 || position >= notes.length) {
+          throw new Error(
+            `Omit position ${position} is out of bounds for the snippet of length ${notes.length}.`,
+          );
+        }
 
-      for (const note of notes) {
-        if (positions.includes(offset)) note.midi = null;
-        offset += note.duration;
+        notes[position].midi = null;
       }
     },
   };
@@ -135,77 +133,32 @@ function invert(enabled: boolean): Feature {
 }
 
 /** One entry of `subset`'s `noteLengths`, describing a single position of the template's rhythm. */
-export type SubsetEntry =
-  | number
-  | { noteLength: number; notesTaken?: number }
-  | { restLength: number; notesTaken?: number };
+export type SubsetEntry = number | { length: number; notesTaken?: number };
 
-interface SubsetPosition {
-  /** How many eighth notes the position lasts. */
-  length: number;
-  /** How many of the template's note elements it covers. */
-  slots: number;
-  isRest: boolean;
-}
-
-function readSubsetEntry(entry: SubsetEntry): SubsetPosition {
-  if (typeof entry === "number") return { length: entry, slots: 1, isRest: false };
-
-  const isRest = "restLength" in entry;
-
-  return {
-    length: isRest ? entry.restLength : entry.noteLength,
-    slots: entry.notesTaken ?? 1,
-    isRest,
-  };
-}
-
-/**
- * Thins the snippet down to the rhythm the template already writes. Each entry of `noteLengths`
- * keeps whichever note is sounding at that point of the snippet and gives it that many eighth
- * notes, dropping the notes the entry covers.
- *
- * The durations here only describe what the template already says, so that the notes that are
- * kept fall into the template's notes in order and nothing downstream has to rewrite a duration.
- * `notesTaken` says how many of the template's notes an entry covers, for the positions the
- * template writes as several tied notes rather than one.
- */
 function subset({ noteLengths }: { noteLengths: SubsetEntry[] }): Feature {
   return {
     handleNoteArray(notes) {
-      /** The pitch sounding at each eighth note of the snippet. */
-      const sounding: (number | null)[] = [];
-      for (const note of notes) {
-        for (let i = 0; i < note.duration; i++) sounding.push(note.midi);
-      }
+      const newNotes: Note[] = [];
 
-      const kept: Note[] = [];
       let offset = 0;
 
       for (const entry of noteLengths) {
-        const { length, slots, isRest } = readSubsetEntry(entry);
+        const length = typeof entry === "number" ? entry : entry.length;
+        const notesTaken = typeof entry === "number" ? 1 : (entry.notesTaken ?? 1);
 
-        if (!Number.isInteger(length) || length < 1) {
-          throw new Error(`A subset length of ${length} is not a whole number of eighth notes.`);
-        }
-
-        if (!Number.isInteger(slots) || slots < 1) {
-          throw new Error(`A subset notesTaken of ${slots} is not a whole number of notes.`);
-        }
-
-        // Past the end of the snippet there is nothing left to keep, so the position falls silent.
-        kept.push({ midi: isRest ? null : (sounding[offset] ?? null), duration: length, slots });
+        newNotes.push(...Array.from<Note>({ length: notesTaken }).fill({ ...notes[offset] }));
+        newNotes[newNotes.length - 1].length = length - notesTaken + 1;
         offset += length;
       }
 
-      notes.splice(0, notes.length, ...kept);
+      notes.splice(0, notes.length, ...newNotes);
     },
   };
 }
 
 function duplicateNotes(behavior: "extend" | "remove"): Feature {
   return {
-    handleNoteArray(notes, { notesPerMeasure }): void {
+    handleNoteArray(notes): void {
       if (behavior === "remove") {
         // For each note, if it is the same as the previous note, make it a rest.
         let previousNote: Note | null = null;
@@ -221,27 +174,7 @@ function duplicateNotes(behavior: "extend" | "remove"): Feature {
         return;
       }
 
-      // "extend": absorb each run of repeated notes into the first note of the run, so the run
-      // is written as one longer note instead of the same pitch struck several times.
-      let offsetInMeasure = 0;
-
-      for (let i = 0; i < notes.length; i++) {
-        const note = notes[i];
-
-        while (i + 1 < notes.length && notes[i + 1].midi === note.midi) {
-          const merged = note.duration + notes[i + 1].duration;
-
-          // A note may not run past the barline, because carrying it over would need a tie, and
-          // it has to stay a duration that a single note head can express.
-          if (offsetInMeasure + merged > notesPerMeasure) break;
-          if (!isExpressibleDuration(merged)) break;
-
-          note.duration = merged;
-          notes.splice(i + 1, 1);
-        }
-
-        offsetInMeasure = (offsetInMeasure + note.duration) % notesPerMeasure;
-      }
+      throw new Error('duplicateNotes: "extend" is not supported right now.');
     },
   };
 }
@@ -259,7 +192,6 @@ function keySignature(config: number | { fifths: number; round?: boolean }): Fea
   const feature: Feature = {};
 
   const scale = getScaleForKeySignature(fifths);
-  const unPaddedScale = scale.slice(1, -1); // The scale is padded around the ends to make rounding easier.
 
   if (round) {
     feature.handleNoteArray = (notes) => {

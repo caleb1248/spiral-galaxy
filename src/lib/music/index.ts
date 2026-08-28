@@ -90,7 +90,7 @@ function _playNote(index: number | null, speed: number, arm: 1 | 2 = 1) {
 
 /** The galaxy gives one point per eighth note; features are what turn them into longer notes. */
 function toNotes(midiNotes: number[]): Note[] {
-  return midiNotes.map((midi) => ({ midi, duration: 1 }));
+  return midiNotes.map((midi) => ({ midi, length: 1 }));
 }
 
 export async function exportPdf() {

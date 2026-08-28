@@ -108,8 +108,8 @@ export async function exportPdf() {
 
 export const indicies = [[], []] as [(number | null)[], (number | null)[]];
 
-const TEMPLATE_XML = await fetchText("/templates/template-1.musicxml");
-const TEMPLATE_DATA = JSON.parse(await fetchText("/templates/template-1.json")) as TemplateData;
+const TEMPLATE_XML = await fetchText("/templates/template-2.musicxml");
+const TEMPLATE_DATA = JSON.parse(await fetchText("/templates/template-2.json")) as TemplateData;
 
 // @ts-ignore
 globalThis.exportMidi = () => {

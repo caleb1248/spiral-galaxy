@@ -28,7 +28,7 @@ export function populateComposition(
   const parseError = composition.getElementsByTagName("parsererror")[0];
   if (parseError) throw new Error(`Template is not valid XML: ${parseError.textContent}`);
 
-  const { notesPerMeasure, insertions, defaultFeatures = {} } = templateData;
+  const { insertions, defaultFeatures = {} } = templateData;
   const divisionsPerEighth = getDivisionsPerEighth(composition);
 
   for (const insertion of insertions) {
@@ -39,11 +39,25 @@ export function populateComposition(
       duration,
     }));
 
-    const features = getFeatureHandlers(
-      mergeFeatureConfigs(defaultFeatures, insertion.features ?? {}),
-    );
+    const config = mergeFeatureConfigs(defaultFeatures, insertion.features ?? {});
+    const notesPerMeasure = config.notesPerMeasure ?? templateData.notesPerMeasure;
 
-    features.handleNoteArray(notes, { notesPerMeasure });
+    if (notesPerMeasure === undefined) {
+      throw new Error(
+        `The insertion at measure ${insertion.measure} has no notesPerMeasure, and the template ` +
+          `does not give one either.`,
+      );
+    }
+
+    // `subset` picks its notes to match the rhythm the template already writes, so the durations
+    // in the template are the ones to keep.
+    const preserveTemplateRhythm = config.subset !== undefined;
+    const features = getFeatureHandlers(config);
+
+    features.handleNoteArray(notes, {
+      notesPerMeasure,
+      params: { xml, templateData, arms: [arm1, arm2] },
+    });
 
     let measureNumber = insertion.measure;
 
@@ -57,6 +71,7 @@ export function populateComposition(
         measureNumber,
         divisionsPerEighth,
         features,
+        preserveTemplateRhythm,
       });
 
       measureNumber++;
@@ -126,12 +141,20 @@ interface MeasureOptions {
   measureNumber: number;
   divisionsPerEighth: number;
   features: Required<Feature>;
+  /** Whether the notes are written to the rhythm the template already carries. */
+  preserveTemplateRhythm: boolean;
 }
 
 /** writes a 1-measure section of a snippet*/
 function populateMeasure(measure: Element, notes: Note[], options: MeasureOptions) {
   const { hand, measureNumber, divisionsPerEighth, features } = options;
   const slots = getHandSlots(measure, options);
+
+  if (options.preserveTemplateRhythm) {
+    populateTemplateRhythm(slots, notes, options);
+    return;
+  }
+
   const beamGroups = readBeamGroups(slots);
 
   /** Duration in eighths written into each slot we filled, keyed by slot index. */
@@ -173,10 +196,75 @@ function populateMeasure(measure: Element, notes: Note[], options: MeasureOption
 }
 
 /**
+ * Writes the notes into the template's own note elements, in order, leaving the rhythm the
+ * template wrote exactly as it is: only the pitches and rests change, so the durations, beams and
+ * ties the template carries stay put. A note covers as many slots as it says, which is how a
+ * duration the template spells with several tied notes gets one pitch across all of them.
+ */
+function populateTemplateRhythm(slots: Element[], notes: Note[], options: MeasureOptions) {
+  const { hand, measureNumber, features } = options;
+
+  let slotIndex = 0;
+  let offsetInMeasure = 0;
+
+  for (const note of notes) {
+    const covered = note.slots ?? 1;
+
+    if (slotIndex + covered > slots.length) {
+      throw new Error(
+        `Measure ${measureNumber} has only ${slots.length} ${hand}-hand notes, which is not ` +
+          `enough for the rhythm being written into it.`,
+      );
+    }
+
+    let coveredDuration = 0;
+
+    for (let i = 0; i < covered; i++) {
+      const element = slots[slotIndex + i];
+      coveredDuration += slotDuration(element, options);
+
+      if (note.midi === null) writeRest(element);
+      else writePitch(element, note.midi);
+
+      features.processNoteElement(element, { note, offsetInMeasure, measureNumber });
+    }
+
+    if (coveredDuration !== note.duration) {
+      throw new Error(
+        `A note of ${note.duration} eighths at position ${offsetInMeasure} of measure ` +
+          `${measureNumber} covers ${covered} of the template's ${hand}-hand notes, which are ` +
+          `${coveredDuration} eighths long. The rhythm has to match the template exactly.`,
+      );
+    }
+
+    slotIndex += covered;
+    offsetInMeasure += note.duration;
+  }
+}
+
+/** The length of a template note in eighth notes. */
+function slotDuration(element: Element, options: MeasureOptions): number {
+  const { measureNumber, divisionsPerEighth } = options;
+  const duration = Number(textOf(element, "duration"));
+
+  if (!Number.isInteger(duration / divisionsPerEighth)) {
+    throw new Error(
+      `Measure ${measureNumber} has a note of ${duration} divisions, which is not a whole ` +
+        `number of eighth notes.`,
+    );
+  }
+
+  return duration / divisionsPerEighth;
+}
+
+/**
  * The note elements an insertion may overwrite in one measure: the eighth-note slots on the
  * staff belonging to `hand`, in the first voice found on that staff. Chord members are skipped
  * because they share the slot of the note they follow, and the other voices are accompaniment
  * that the template owns.
+ *
+ * The slots have to be plain eighth notes for the rhythm to be rewritten, but an insertion that
+ * keeps the template's rhythm takes them however the template wrote them.
  */
 function getHandSlots(measure: Element, options: MeasureOptions): Element[] {
   const { hand, measureNumber, divisionsPerEighth } = options;
@@ -188,6 +276,8 @@ function getHandSlots(measure: Element, options: MeasureOptions): Element[] {
 
   const voice = textOf(onStaff[0], "voice");
   const slots = onStaff.filter((note) => textOf(note, "voice") === voice);
+
+  if (options.preserveTemplateRhythm) return slots;
 
   for (const slot of slots) {
     if (

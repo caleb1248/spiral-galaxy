@@ -67,16 +67,13 @@ Code by Caleb Liu</creator>
    <note-size type="cue">75</note-size>
    <note-size type="grace">60</note-size>
   </appearance>
-  <music-font font-family="Opus Std" font-size="14.7402" />
-  <word-font font-family="Times New Roman" font-size="8.8671" />
-  <lyric-font font-family="Times New Roman" font-size="8.5217" />
   <lyric-language xml:lang="en" />
  </defaults>
  <credit page="1">
-  <credit-words default-x="830" default-y="173" font-family="Times New Roman" font-style="normal" font-size="16.3524" font-weight="bold" justify="center" valign="middle">Piano Galaxy 1.2</credit-words>
+  <credit-words default-x="830" default-y="173" font-style="normal" font-size="16.3524" font-weight="bold" justify="center" valign="middle">Piano Galaxy 1.2</credit-words>
  </credit>
  <credit page="1">
-  <credit-words default-x="1545" default-y="124" font-family="Times New Roman" font-style="normal" font-size="8.1762" font-weight="normal" justify="right" valign="middle">David Ibbett 2026
+  <credit-words default-x="1545" default-y="124" font-style="normal" font-size="8.1762" font-weight="normal" justify="right" valign="middle">David Ibbett 2026
 Code by Caleb Liu</credit-words>
  </credit>
  <credit page="2">
@@ -148,27 +145,27 @@ Code by Caleb Liu</credit-words>
    </attributes>
    <direction>
     <direction-type>
-     <rehearsal default-x="77" font-family="Times New Roman" font-style="normal" font-size="14.8553" font-weight="bold" color="#000000" enclosure="square">A</rehearsal>
+     <rehearsal default-x="77" font-style="normal" font-size="14.8553" font-weight="bold" color="#000000" enclosure="square">A</rehearsal>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-x="76" default-y="-92" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">40 note series from middle C to high C 3 octaves up. Repeated notes are rests. We need 8va and 8vb added automatically.</words>
+     <words default-x="76" default-y="-92" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">40 note series from middle C to high C 3 octaves up. Repeated notes are rests. We need 8va and 8vb added automatically.</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-x="32" default-y="121" justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="bold">Starburst</words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="normal">. Play dramatically in free time. Eight notes are freely fast, rests are approximate. </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="normal">Dynamics follow motion between </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="bold">pp</words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="normal"> and </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="bold">ff. </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="normal">Refresh pedal as needed.</words>
+     <words default-x="32" default-y="121" justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="bold">Starburst</words>
+     <words justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="normal">. Play dramatically in free time. Eight notes are freely fast, rests are approximate. </words>
+     <words justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="normal">Dynamics follow motion between </words>
+     <words justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="bold">pp</words>
+     <words justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="normal"> and </words>
+     <words justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="bold">ff. </words>
+     <words justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="normal">Refresh pedal as needed.</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -473,7 +470,7 @@ Code by Caleb Liu</credit-words>
     <type>eighth</type>
     <staff>1</staff>
    </note>
-   <direction>
+   <direction placement="above">
     <direction-type>
      <octave-shift default-x="-5" default-y="40" font-style="normal" font-weight="normal" color="#000000" type="down" size="8" number="1" />
     </direction-type>
@@ -576,14 +573,6 @@ Code by Caleb Liu</credit-words>
     <stem>down</stem>
     <staff>1</staff>
    </note>
-   <direction>
-    <direction-type>
-     <octave-shift default-x="25" default-y="40" font-style="normal" font-weight="normal" color="#000000" type="stop" size="8" number="1" />
-    </direction-type>
-    <offset sound="no">1</offset>
-    <voice>1</voice>
-    <staff>1</staff>
-   </direction>
    <note color="#000000" default-x="1127" default-y="-20">
     <pitch>
      <step>C</step>
@@ -669,13 +658,11 @@ Code by Caleb Liu</credit-words>
      <octave>2</octave>
     </pitch>
     <duration>1024</duration>
-    <tie type="start" />
     <instrument id="P1-I1" />
     <voice>3</voice>
     <type>whole</type>
     <staff>2</staff>
     <notations>
-     <tied type="start" orientation="under" />
      <arpeggiate />
     </notations>
    </note>
@@ -686,12 +673,10 @@ Code by Caleb Liu</credit-words>
      <octave>2</octave>
     </pitch>
     <duration>1024</duration>
-    <tie type="start" />
     <instrument id="P1-I1" />
     <type>whole</type>
     <staff>2</staff>
     <notations>
-     <tied type="start" orientation="under" />
      <arpeggiate />
     </notations>
    </note>
@@ -702,12 +687,10 @@ Code by Caleb Liu</credit-words>
      <octave>3</octave>
     </pitch>
     <duration>1024</duration>
-    <tie type="start" />
     <instrument id="P1-I1" />
     <type>whole</type>
     <staff>2</staff>
     <notations>
-     <tied type="start" orientation="under" />
      <arpeggiate />
     </notations>
    </note>
@@ -718,12 +701,10 @@ Code by Caleb Liu</credit-words>
      <octave>3</octave>
     </pitch>
     <duration>1024</duration>
-    <tie type="start" />
     <instrument id="P1-I1" />
     <type>whole</type>
     <staff>2</staff>
     <notations>
-     <tied type="start" orientation="over" />
      <arpeggiate />
     </notations>
    </note>
@@ -734,12 +715,10 @@ Code by Caleb Liu</credit-words>
      <octave>3</octave>
     </pitch>
     <duration>1024</duration>
-    <tie type="start" />
     <instrument id="P1-I1" />
     <type>whole</type>
     <staff>2</staff>
     <notations>
-     <tied type="start" orientation="over" />
      <arpeggiate />
     </notations>
    </note>
@@ -800,21 +779,21 @@ Code by Caleb Liu</credit-words>
    </attributes>
    <direction>
     <direction-type>
-     <rehearsal default-x="85" font-family="Times New Roman" font-style="normal" font-size="14.8553" font-weight="bold" color="#000000" enclosure="square">B</rehearsal>
+     <rehearsal default-x="85" font-style="normal" font-size="14.8553" font-weight="bold" color="#000000" enclosure="square">B</rehearsal>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-x="137" default-y="-92" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">Same 40 note series inverted. Middle A to low A 3 octaves down.</words>
+     <words default-x="137" default-y="-92" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">Same 40 note series inverted. Middle A to low A 3 octaves down.</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-x="122" default-y="48" justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="bold">Starburst</words>
+     <words default-x="122" default-y="48" justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="bold">Starburst</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -964,27 +943,12 @@ Code by Caleb Liu</credit-words>
    <forward>
     <duration>2432</duration>
    </forward>
-   <direction>
-    <direction-type>
-     <octave-shift default-y="-107" font-style="normal" font-weight="normal" color="#000000" type="up" size="8" number="1" />
-    </direction-type>
-    <voice>1</voice>
-    <staff>2</staff>
-   </direction>
    <forward>
     <duration>2560</duration>
    </forward>
    <direction>
     <direction-type>
      <pedal default-x="-6" default-y="-84" color="#000000" type="change" line="yes" />
-    </direction-type>
-    <offset sound="no">127</offset>
-    <voice>1</voice>
-    <staff>2</staff>
-   </direction>
-   <direction>
-    <direction-type>
-     <octave-shift default-x="19" default-y="-107" font-style="normal" font-weight="normal" color="#000000" type="stop" size="8" number="1" />
     </direction-type>
     <offset sound="no">127</offset>
     <voice>1</voice>
@@ -1452,6 +1416,10 @@ Code by Caleb Liu</credit-words>
     </staff-layout>
    </print>
    <attributes>
+    <clef number="2">
+      <sign>G</sign>
+      <line>2</line>
+    </clef>
     <key color="#000000">
      <fifths>0</fifths>
      <mode>none</mode>
@@ -1470,15 +1438,15 @@ Code by Caleb Liu</credit-words>
    </direction>
    <direction>
     <direction-type>
-     <words default-y="-75" relative-x="32" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal"> dolce, breathing</words>
+     <words default-y="-75" relative-x="32" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal"> dolce, breathing</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-x="51" default-y="41" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">RH series played in a loop forward then backwards - ie starts rising</words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">Only notes in these positions are played, shown as middle Cs</words>
+     <words default-x="51" default-y="41" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">RH series played in a loop forward then backwards - ie starts rising</words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">Only notes in these positions are played, shown as middle Cs</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -1553,6 +1521,7 @@ Code by Caleb Liu</credit-words>
    <backup>
     <duration>1280</duration>
    </backup>
+
    <note color="#000000" default-x="57" default-y="-42">
     <pitch>
      <step>F</step>
@@ -3866,7 +3835,7 @@ Code by Caleb Liu</credit-words>
    <attributes />
    <direction>
     <direction-type>
-     <words default-x="9" default-y="20" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">RH series played in reverse (falling)</words>
+     <words default-x="9" default-y="20" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">RH series played in reverse (falling)</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -4991,16 +4960,16 @@ Code by Caleb Liu</credit-words>
    </attributes>
    <direction>
     <direction-type>
-     <words default-x="43" default-y="48" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">RH series is played backwards then fowards in a loop in </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">16th</words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal"> notes - ie starting high. Only these are notes actually played. </words>
+     <words default-x="43" default-y="48" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">RH series is played backwards then fowards in a loop in </words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">16th</words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal"> notes - ie starting high. Only these are notes actually played. </words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-y="20" relative-y="26" justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="9.6732" font-weight="bold">Slower</words>
+     <words default-y="20" relative-y="26" justify="left" valign="middle" font-style="normal" font-size="9.6732" font-weight="bold">Slower</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -5848,21 +5817,21 @@ Code by Caleb Liu</credit-words>
    </direction>
    <direction>
     <direction-type>
-     <words default-y="-90" relative-x="15" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal"> rhythmic</words>
+     <words default-y="-90" relative-x="15" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal"> rhythmic</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-y="16" relative-y="26" justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="9.6732" font-weight="bold">Allegro</words>
+     <words default-y="16" relative-y="26" justify="left" valign="middle" font-style="normal" font-size="9.6732" font-weight="bold">Allegro</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <metronome default-y="16" color="#000000" font-family="Times New Roman" font-style="normal" font-size="9.6732" font-weight="bold">
+     <metronome default-y="16" color="#000000" font-style="normal" font-size="9.6732" font-weight="bold">
       <beat-unit>quarter</beat-unit>
       <per-minute>120</per-minute>
      </metronome>
@@ -5889,7 +5858,7 @@ Code by Caleb Liu</credit-words>
    </note>
    <direction>
     <direction-type>
-     <words default-x="107" default-y="37" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">as written</words>
+     <words default-x="107" default-y="37" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">as written</words>
     </direction-type>
     <offset sound="no">-128</offset>
     <voice>1</voice>
@@ -6034,7 +6003,7 @@ Code by Caleb Liu</credit-words>
    <attributes />
    <direction>
     <direction-type>
-     <words default-x="11" default-y="15" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">RH series same, restarted</words>
+     <words default-x="11" default-y="15" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">RH series same, restarted</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -7337,10 +7306,10 @@ Code by Caleb Liu</credit-words>
    </backup>
    <direction>
     <direction-type>
-     <words default-x="2" default-y="-60" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">LH series is played backwards then fowards in a loop in </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">16th</words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal"> notes - ie starting high. </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">Only these are notes actually played. </words>
+     <words default-x="2" default-y="-60" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">LH series is played backwards then fowards in a loop in </words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">16th</words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal"> notes - ie starting high. </words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">Only these are notes actually played. </words>
     </direction-type>
     <voice>3</voice>
     <staff>2</staff>
@@ -8819,16 +8788,16 @@ Code by Caleb Liu</credit-words>
    </attributes>
    <direction>
     <direction-type>
-     <words default-x="25" default-y="65" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">RH series is played forwards then backwards in a loop in </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">8th</words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal"> notes - ie starting low. Only these are notes actually played. </words>
+     <words default-x="25" default-y="65" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">RH series is played forwards then backwards in a loop in </words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">8th</words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal"> notes - ie starting low. Only these are notes actually played. </words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-y="26" relative-y="26" justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="9.6732" font-weight="bold">A Tempo, a Little Faster</words>
+     <words default-y="26" relative-y="26" justify="left" valign="middle" font-style="normal" font-size="9.6732" font-weight="bold">A Tempo, a Little Faster</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -10094,7 +10063,7 @@ Code by Caleb Liu</credit-words>
    </attributes>
    <direction>
     <direction-type>
-     <words default-x="51" default-y="14" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">still the series</words>
+     <words default-x="51" default-y="14" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">still the series</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -10646,7 +10615,7 @@ Code by Caleb Liu</credit-words>
    </direction>
    <direction>
     <direction-type>
-     <words default-x="22" default-y="20" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">these bars as is</words>
+     <words default-x="22" default-y="20" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">these bars as is</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -11119,17 +11088,17 @@ Code by Caleb Liu</credit-words>
    <attributes />
    <direction>
     <direction-type>
-     <words default-x="6" default-y="65" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">RH series is played forwards then backwards in a loop in </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">8th</words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal"> notes - ie starting low. </words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">Only these are notes actually played. Add a note a diatonic third lower.</words>
+     <words default-x="6" default-y="65" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">RH series is played forwards then backwards in a loop in </words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">8th</words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal"> notes - ie starting low. </words>
+     <words justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">Only these are notes actually played. Add a note a diatonic third lower.</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-y="13" relative-y="26" justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="9.6732" font-weight="bold">Faster</words>
+     <words default-y="13" relative-y="26" justify="left" valign="middle" font-style="normal" font-size="9.6732" font-weight="bold">Faster</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -13052,13 +13021,6 @@ Code by Caleb Liu</credit-words>
    <backup>
     <duration>768</duration>
    </backup>
-   <direction>
-    <direction-type>
-     <octave-shift default-x="-5" default-y="48" font-style="normal" font-weight="normal" color="#000000" type="down" size="8" number="1" />
-    </direction-type>
-    <voice>1</voice>
-    <staff>2</staff>
-   </direction>
    <forward>
     <duration>640</duration>
    </forward>
@@ -13255,15 +13217,15 @@ Code by Caleb Liu</credit-words>
    </attributes>
    <direction>
     <direction-type>
-     <words default-x="101" default-y="-92" justify="left" valign="middle" font-family="Times New Roman" font-style="italic" font-size="8.8671" font-weight="normal">40 note series in both hands, mirrored.</words>
+     <words default-x="101" default-y="-92" justify="left" valign="middle" font-style="italic" font-size="8.8671" font-weight="normal">40 note series in both hands, mirrored.</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
    </direction>
    <direction>
     <direction-type>
-     <words default-x="38" default-y="17" justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="bold">Starburst</words>
-     <words justify="left" valign="middle" font-family="Times New Roman" font-style="normal" font-size="8.8671" font-weight="normal">.</words>
+     <words default-x="38" default-y="17" justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="bold">Starburst</words>
+     <words justify="left" valign="middle" font-style="normal" font-size="8.8671" font-weight="normal">.</words>
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>

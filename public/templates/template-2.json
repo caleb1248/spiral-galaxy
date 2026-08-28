@@ -1,15 +1,104 @@
 {
-  "notesPerMeasure": 10,
   "insertions": [
     {
       "measure": 1,
       "hand": "right",
-      "features": { "range": { "low": 48, "high": 84 }, "duplicateNotes": "remove" }
+      "features": {
+        "range": { "low": 48, "high": 84 },
+        "duplicateNotes": "remove",
+        "notesPerMeasure": 40
+      }
     },
     {
       "measure": 2,
+      "hand": "left",
+      
+      "features": {
+        "copyFromArm": 1,
+        "invert": true,
+        "keySignature": { "fifths": 3, "round": true },
+        "range": { "low": 9, "high": 45 },
+        "duplicateNotes": "remove",
+        "notesPerMeasure": 40
+      }
+    },
+    {
+      "measure": 3,
       "hand": "right",
-      "features": { "range": { "low": 48, "high": 84 }, "duplicateNotes": "remove" }
+      "features": {
+        "subset": {
+          "noteLengths": [3,3,2,2,3,3,2,2,3,3,2,2,6]
+        }
+      }
+    },
+    {
+      "measure": 7,
+      "hand": "right",
+      "features": {
+        "reverse": true,
+        "omit": [26],
+        "subset": {
+          "noteLengths": [
+            3,3,2,2,
+            3,3,2,2,
+            3,3,2,2,
+            6
+          ]
+        }
+      }
+    },
+    {
+      "measure": 11,
+      "hand": "right",
+      "features": {
+        "omit": [0, 10, 26, 28],
+        "subset": {
+          "noteLengths": [
+            3, 3, 4,
+            1, { "noteLength": 5, "notesTaken": 2 }, 1, 1, 1, 1,
+            6, 2, 2,
+            1, 1, 8
+          ]
+        }
+      }
+    },
+    {
+      "measure": 15,
+      "hand": "right",
+      "features": {
+        "reverse": true,
+        "omit": [0, 20],
+        "subset": {
+          "noteLengths": [
+            { "restLength": 3 }, 3, 4,
+            1, 1, 1, { "noteLength": 5, "notesTaken": 2 }, 2,
+            2, 1,1,1, { "noteLength": 3, "notesTaken": 2 }, 2,
+            1, 1, 1,1,1
+          ]
+        }
+      }
+    },
+    {
+      "measure": 20,
+      "hand": "right",
+      "features": {
+        "reverse": true,
+        "omit": [0, 10, 20],
+        "subset": {
+          "noteLengths": [
+            1, 1, 1, 2, 1,
+            1, 1, 1, 2, 1,
+            1, 1, 1, 2, 1,
+            6
+          ]
+        },
+        "notesPerMeasure": 12
+      }
     }
-  ]
+
+  ],
+  "defaultFeatures": {
+    "keySignature": { "fifths": 0, "round": true },
+    "notesPerMeasure": 10
+  }
 }

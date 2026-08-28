@@ -10,6 +10,12 @@ import { removeChildren } from "./elements";
 export interface NoteArrayContext {
   /** Eighth notes per measure, from the template data. */
   notesPerMeasure: number;
+  /** The parameters supplied to the xml generation. */
+  params: {
+    templateData: import("./template-data").TemplateData;
+    xml: string;
+    arms: Note[][];
+  };
 }
 
 /** What a feature knows about the note element it is being handed. */
@@ -45,6 +51,15 @@ function getScaleForKeySignature(fifths: number): number[] {
   scale.sort((a, b) => a - b);
 
   return [scale[scale.length - 1] - 12, ...scale, scale[0] + 12];
+}
+
+function copyFromArm(armNumber: number): Feature {
+  return {
+    handleNoteArray(notes, ctx) {
+      const arm = ctx.params.arms[armNumber - 1];
+      notes.splice(0, notes.length, ...arm.map((note) => ({ ...note })));
+    },
+  };
 }
 
 /**
@@ -90,6 +105,100 @@ function range({ low, high }: { low: number; high: number }): Feature {
       }
 
       pitched.forEach((note, i) => (note.midi = Math.round(scaled[i])));
+    },
+  };
+}
+
+/** Plays the snippet backwards, so its line moves the opposite way. */
+function reverse(enabled: boolean): Feature {
+  return {
+    handleNoteArray(notes) {
+      if (enabled) notes.reverse();
+    },
+  };
+}
+
+function invert(enabled: boolean): Feature {
+  if (!enabled) return {};
+
+  return {
+    handleNoteArray(notes) {
+      const minMidi = Math.min(...notes.map((note) => note.midi ?? Infinity));
+      const maxMidi = Math.max(...notes.map((note) => note.midi ?? -Infinity));
+
+      for (const note of notes) {
+        if (note.midi === null) continue; // Skip rests
+        note.midi = maxMidi - (note.midi - minMidi);
+      }
+    },
+  };
+}
+
+/** One entry of `subset`'s `noteLengths`, describing a single position of the template's rhythm. */
+export type SubsetEntry =
+  | number
+  | { noteLength: number; notesTaken?: number }
+  | { restLength: number; notesTaken?: number };
+
+interface SubsetPosition {
+  /** How many eighth notes the position lasts. */
+  length: number;
+  /** How many of the template's note elements it covers. */
+  slots: number;
+  isRest: boolean;
+}
+
+function readSubsetEntry(entry: SubsetEntry): SubsetPosition {
+  if (typeof entry === "number") return { length: entry, slots: 1, isRest: false };
+
+  const isRest = "restLength" in entry;
+
+  return {
+    length: isRest ? entry.restLength : entry.noteLength,
+    slots: entry.notesTaken ?? 1,
+    isRest,
+  };
+}
+
+/**
+ * Thins the snippet down to the rhythm the template already writes. Each entry of `noteLengths`
+ * keeps whichever note is sounding at that point of the snippet and gives it that many eighth
+ * notes, dropping the notes the entry covers.
+ *
+ * The durations here only describe what the template already says, so that the notes that are
+ * kept fall into the template's notes in order and nothing downstream has to rewrite a duration.
+ * `notesTaken` says how many of the template's notes an entry covers, for the positions the
+ * template writes as several tied notes rather than one.
+ */
+function subset({ noteLengths }: { noteLengths: SubsetEntry[] }): Feature {
+  return {
+    handleNoteArray(notes) {
+      /** The pitch sounding at each eighth note of the snippet. */
+      const sounding: (number | null)[] = [];
+      for (const note of notes) {
+        for (let i = 0; i < note.duration; i++) sounding.push(note.midi);
+      }
+
+      const kept: Note[] = [];
+      let offset = 0;
+
+      for (const entry of noteLengths) {
+        const { length, slots, isRest } = readSubsetEntry(entry);
+
+        if (!Number.isInteger(length) || length < 1) {
+          throw new Error(`A subset length of ${length} is not a whole number of eighth notes.`);
+        }
+
+        if (!Number.isInteger(slots) || slots < 1) {
+          throw new Error(`A subset notesTaken of ${slots} is not a whole number of notes.`);
+        }
+
+        // Past the end of the snippet there is nothing left to keep, so the position falls silent.
+        kept.push({ midi: isRest ? null : (sounding[offset] ?? null), duration: length, slots });
+        offset += length;
+      }
+
+      notes.splice(0, notes.length, ...kept);
     },
   };
 }
@@ -230,23 +339,58 @@ function keySignature(config: number | { fifths: number; round?: boolean }): Fea
 }
 
 export interface FeaturesConfig {
+  /** Currently, this will break if the arm is neither 1 nor 2 */
+  copyFromArm?: number;
+  /**
+   * Eighth notes per measure for the measures this insertion writes into, overriding the
+   * template's own value.
+   */
+  notesPerMeasure?: number;
   /** Positions to turn into rests, in eighth notes from the start of the insertion. */
   omit?: number[];
   /** Midi range to fit the snippet's pitches into. */
   range?: { low: number; high: number };
+  reverse?: boolean;
+  invert?: boolean;
   duplicateNotes?: "extend" | "remove";
   keySignature?: number | { fifths: number; round?: boolean };
+  /** The rhythm the template writes for this insertion, as lengths in eighth notes. */
+  subset?: { noteLengths: SubsetEntry[] };
 }
 
+/** The settings the generator reads for itself rather than running as a feature. */
+type SettingName = "notesPerMeasure";
+
 const featureFactories = {
+  copyFromArm,
   omit,
   range,
+  reverse,
+  invert,
   duplicateNotes,
   keySignature,
-} satisfies { [K in keyof FeaturesConfig]-?: (value: NonNullable<FeaturesConfig[K]>) => Feature };
+  subset,
+} satisfies {
+  [K in Exclude<keyof FeaturesConfig, SettingName>]-?: (
+    value: NonNullable<FeaturesConfig[K]>,
+  ) => Feature;
+};
 
-/** The features should run in this order. */
-const featureOrder = ["omit", "range", "keySignature", "duplicateNotes"] as const;
+/**
+ * The features should run in this order. `range` comes first because it has to see the snippet as
+ * the galaxy drew it, and `subset` comes last because it replaces the snippet with the notes that
+ * the earlier features have settled on.
+ */
+const featureOrder = [
+  "copyFromArm",
+  "range",
+  "reverse",
+  "invert",
+  "omit",
+  "keySignature",
+  "duplicateNotes",
+  "subset",
+] as const;
 
 export function mergeFeatureConfigs(
   defaultFeatures: FeaturesConfig,

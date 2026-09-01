@@ -184,6 +184,37 @@
       }
     },
     {
+      "hand": "right",
+      "measure": 62,
+      "features": {
+        "loop": {
+          "bidirectional": true,
+          "targetLength": 66
+        },
+        "subset": {
+          "noteLengths": [
+            1, 1, 1, 2, 1,
+            1, 1, 1, 2, 1,
+            1, 1, 1, 2, 1,
+            1, 1, 1, 2, 1,
+            1, 1, 1, 2, 1,
+            1, 1, 1, 2, 1,
+
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1
+          ]
+        },
+        "doubleNote": {
+          "interval": -3,
+          "diatonic": true
+        },
+        "notesPerMeasure": 6  
+      }
+    },
+    {
       "measure": 74,
       "hand": "right",
       "features": {

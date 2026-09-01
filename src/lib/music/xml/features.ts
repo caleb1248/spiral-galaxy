@@ -3,7 +3,7 @@
 import type { Note } from "../../types";
 import { findNearest, scale } from "../../utils";
 import { constants } from "../constants";
-import { removeChildren } from "./elements";
+import { insertOrdered, NOTE_CHILD_ORDER, removeChildren, textOf } from "./elements";
 
 /** What a feature knows about the insertion it is being applied to. */
 export interface NoteArrayContext {
@@ -228,6 +228,149 @@ function duplicateNotes(behavior: "extend" | "remove"): Feature {
   };
 }
 
+function arrayItem<T>(arr: Array<T>, index: number): T {
+  return arr[((index % arr.length) + arr.length) % arr.length];
+}
+
+/**
+ * usage:
+ * ```ts
+ * const [pitch, octave] = pitchAndOctave(60); // pitch=0, octave=4;
+ */
+function pitchAndOctave(midiNote: number): [number, number] {
+  const pitch = ((midiNote % 12) + 12) % 12;
+  const octave = Math.floor(midiNote / 12);
+
+  return [pitch, octave];
+}
+
+/** The chord members the template hung off `note`, in document order. */
+function chordMembersOf(note: Element): Element[] {
+  const members: Element[] = [];
+
+  for (
+    let sibling = note.nextElementSibling;
+    sibling?.tagName === "note" && sibling.getElementsByTagName("chord").length > 0;
+    sibling = sibling.nextElementSibling
+  ) {
+    members.push(sibling);
+  }
+
+  return members;
+}
+
+/**
+ * Sounds a second note a fixed number of scale degrees away from each note of the snippet, written
+ * as a chord member so the two share a stem. `fifths` says which key's scale the degrees are
+ * counted in; it defaults to whatever the `keySignature` feature is using.
+ *
+ * The template draws its own placeholder chord under each slot, and `getHandSlots` skips chord
+ * members, so those placeholders are never written to as slots. They are overwritten from here
+ * instead: the first one becomes the double and keeps the template's engraving, and the rest go.
+ */
+function doubleNote(config: { interval: number; diatonic?: boolean; fifths?: number }): Feature {
+  if (!config.diatonic) throw new Error("chromatic double stop not supported yet");
+
+  config.interval -= Math.sign(config.interval);
+
+  const fifths = config.fifths ?? 0;
+  // The padded ends of the key's scale are the first and last degree an octave away, so they are
+  // dropped here: `arrayItem` already wraps around the seven degrees on its own.
+  const scale = getScaleForKeySignature(fifths).slice(1, -1);
+  const sharpsOrFlats = (fifths > 0 ? constants.SHARPS : constants.FLATS).slice(
+    0,
+    Math.abs(fifths),
+  );
+
+  return {
+    processNoteElement(element) {
+      const [placeholder, ...extras] = chordMembersOf(element);
+      for (const extra of extras) extra.remove();
+
+      // Retrive note info
+      const pitchElement = element.getElementsByTagName("pitch")[0];
+
+      if (!pitchElement) {
+        // The slot is a rest, so there is nothing to double and its placeholder has to go as well.
+        placeholder?.remove();
+        return;
+      }
+
+      const step = constants.STANDARD_NOTE_NAMES.indexOf(textOf(pitchElement, "step")!);
+      const alter = +(textOf(pitchElement, "alter") || 0);
+      const octave = +textOf(pitchElement, "octave")!;
+
+      const [computedPitch, computedOctave] = pitchAndOctave(
+        constants.C_MAJOR_SCALE[step] + alter + octave * 12,
+      );
+      const pitchIndex = scale.indexOf(computedPitch);
+
+      if (pitchIndex === -1) {
+        throw new Error(
+          `[doubleNote] Note ${computedPitch} is not in the provided scale (step=${textOf(pitchElement, "step")}, alter=${alter}, octave=${octave}, keySignature=${fifths}). If this was intentional, try turning off diatonic mode.`,
+        );
+      }
+
+      const degree = pitchIndex + config.interval;
+      const shifted = arrayItem(scale, degree);
+      // Counting past either end of the scale carries the double into a neighbouring octave.
+      let doubledOctave = computedOctave + Math.floor(degree / scale.length);
+
+      // Spell the double the way the key signature spells the note it is doubling: a pitch the
+      // key already sharpens or flattens keeps that accidental, everything else is natural.
+      let doubledStep = shifted;
+      let doubledAlter = 0;
+
+      if (sharpsOrFlats.includes(shifted)) {
+        doubledAlter = fifths > 0 ? 1 : -1;
+        doubledStep = shifted - doubledAlter;
+      }
+
+      if (doubledStep < 0) ((doubledStep += 12), doubledOctave--);
+      if (doubledStep > 11) ((doubledStep -= 12), doubledOctave++);
+
+      const document = element.ownerDocument;
+      let double = placeholder;
+
+      if (!double) {
+        // The template left no placeholder here, so the double is built from the note it doubles,
+        // which is already carrying the right duration and type.
+        double = element.cloneNode(true) as Element;
+        insertOrdered(double, document.createElement("chord"), NOTE_CHILD_ORDER);
+        element.parentNode!.insertBefore(double, element.nextSibling);
+      }
+
+      // A chord member repeats the duration and type of the note it hangs off, but the stem,
+      // beams, lyrics and accidental belong to that note alone.
+      removeChildren(double, "stem");
+      removeChildren(double, "beam");
+      removeChildren(double, "lyric");
+      removeChildren(double, "accidental");
+
+      let doubledPitch = double.getElementsByTagName("pitch")[0];
+
+      if (!doubledPitch) {
+        doubledPitch = document.createElement("pitch");
+        removeChildren(double, "rest");
+        insertOrdered(double, doubledPitch, NOTE_CHILD_ORDER);
+      }
+
+      // `<pitch>` requires its children in this order, so it is rebuilt rather than patched, the
+      // same way `writePitch` builds the pitch of the note being doubled.
+      doubledPitch.replaceChildren();
+      for (const [tagName, text] of [
+        ["step", constants.CHROMATIC_SCALE[doubledStep]],
+        ["alter", doubledAlter.toString()],
+        ["octave", doubledOctave.toString()],
+      ]) {
+        const child = document.createElement(tagName);
+        child.textContent = text;
+        doubledPitch.appendChild(child);
+      }
+    },
+  };
+}
+
 /**
  * Contains two features:
  * 1. Rounds the pitches to the nearest note in the key signature, if `round` is true.
@@ -336,6 +479,11 @@ export interface FeaturesConfig {
   /** Repeats the snippet until it is `targetLength` notes long, reversing every other repetition when `bidirectional` is set. */
   loop?: { targetLength: number; bidirectional?: boolean };
   duplicateNotes?: "extend" | "remove";
+  /**
+   * Sounds a second note `interval` scale degrees away from each note of the snippet. `fifths`
+   * defaults to the key signature this insertion is already using.
+   */
+  doubleNote?: { interval: number; diatonic?: boolean; fifths?: number };
   keySignature?: number | { fifths: number; round?: boolean };
   /** The rhythm the template writes for this insertion, as lengths in eighth notes. */
   subset?: { noteLengths: SubsetEntry[] };
@@ -352,6 +500,7 @@ const featureFactories = {
   invert,
   loop,
   duplicateNotes,
+  doubleNote,
   keySignature,
   subset,
 } satisfies {
@@ -374,6 +523,7 @@ const featureOrder = [
   "omit",
   "keySignature",
   "duplicateNotes",
+  "doubleNote",
   "subset",
 ] as const;
 
@@ -391,7 +541,20 @@ export function getFeatureHandlers(features: FeaturesConfig): Required<Feature> 
   for (const name of featureOrder) {
     const value = features[name];
     if (value === undefined) continue;
-    handlers.push((featureFactories[name] as (value: unknown) => Feature)(value));
+
+    // `doubleNote` counts its interval in scale degrees, so it needs the same key signature the
+    // rest of the insertion is written in unless the template handed it one of its own.
+    let input: unknown = value;
+
+    if (name === "doubleNote" && features.doubleNote!.fifths === undefined) {
+      const { keySignature } = features;
+      input = {
+        ...features.doubleNote,
+        fifths: typeof keySignature === "number" ? keySignature : (keySignature?.fifths ?? 0),
+      };
+    }
+
+    handlers.push((featureFactories[name] as (value: unknown) => Feature)(input));
   }
 
   return {

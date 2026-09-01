@@ -55,7 +55,7 @@
         "subset": {
           "noteLengths": [
             3, 3, 4,
-            1, { "noteLength": 5, "notesTaken": 2 }, 1, 1, 1, 1,
+            1, { "length": 5, "notesTaken": 2 }, 1, 1, 1, 1,
             6, 2, 2,
             1, 1, 8
           ]
@@ -70,9 +70,9 @@
         "omit": [0, 20],
         "subset": {
           "noteLengths": [
-            { "restLength": 3 }, 3, 4,
-            1, 1, 1, { "noteLength": 5, "notesTaken": 2 }, 2,
-            2, 1,1,1, { "noteLength": 3, "notesTaken": 2 }, 2,
+            3, 3, 4,
+            1, 1, 1, { "length": 5, "notesTaken": 2 }, 2,
+            2, 1,1,1, { "length": 3, "notesTaken": 2 }, 2,
             1, 1, 1,1,1
           ]
         }
@@ -83,19 +83,148 @@
       "hand": "right",
       "features": {
         "reverse": true,
-        "omit": [0, 10, 20],
+        "omit": [0, 12, 24, 48, 60, 72],
+        "loop": {
+          "targetLength": 94,
+          "bidirectional": true
+        },
         "subset": {
           "noteLengths": [
             2, 2, 2, 4, 2,
             2, 2, 2, 4, 2,
             2, 2, 2, 4, 2,
-            12
+            12,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            8
           ]
         },
         "notesPerMeasure": 12
       }
+    },
+    {
+      "measure": 28,
+      "hand": "right",
+      "features": {
+        "reverse": true,
+        "omit": [0, 12, 24, 48, 60, 72],
+        "loop": {
+          "targetLength": 94,
+          "bidirectional": true
+        },
+        "subset": {
+          "noteLengths": [
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            6, 6,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            4
+          ]
+        },
+        "notesPerMeasure": 12
+      }
+    },
+    {
+      "measure": 36,
+      "hand": "left",
+      "features": {
+        "omit": [0, 12, 24, 48, 60, 72, 84, 96, 108],
+        "loop": {
+          "targetLength": 120,
+          "bidirectional": true
+        },
+        "subset": {
+          "noteLengths": [
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            12,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2,
+            2, 2, 2, 4, 2
+          ]
+        },
+        "notesPerMeasure": 12
+      }
+    },
+    {
+      "measure": 46,
+      "hand": "right",
+      "features": {
+        "omit": [0, 42, 54, 66],
+        "loop": {
+          "targetLength": 73,
+          "bidirectional": true
+        },
+        "subset": {
+          "noteLengths": [
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1,
+            6,
+            6,
+            6,
+            6,
+            6,
+            6
+          ]
+        },
+        "notesPerMeasure": 6
+      }
+    },
+    {
+      "measure": 74,
+      "hand": "right",
+      "features": {
+        "range": { "low": 48, "high": 84 },
+        "duplicateNotes": "remove",
+        "notesPerMeasure": 40
+      }
+    },
+    {
+      "measure": 74,
+      "hand": "left",
+      
+      "features": {
+        "copyFromArm": 1,
+        "invert": true,
+        "range": { "low": 9, "high": 45 },
+        "duplicateNotes": "remove",
+        "notesPerMeasure": 40
+      }
+    },
+    {
+      "measure": 75,
+      "hand": "right",
+      "features": {
+        "reverse": true,
+        "range": { "low": 48, "high": 84 },
+        "subset": { "noteLengths": [6] }
+      }
+    },
+    {
+      "measure": 75,
+      "hand": "left",
+      
+      "features": {
+        "copyFromArm": 1,
+        "invert": true,
+        "reverse": true,
+        "range": { "low": 9, "high": 45 },
+        "subset": { "noteLengths": [6] }
+      }
     }
-
   ],
   "defaultFeatures": {
     "keySignature": { "fifths": 0, "round": true },

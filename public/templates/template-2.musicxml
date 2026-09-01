@@ -470,13 +470,6 @@ Code by Caleb Liu</credit-words>
     <type>eighth</type>
     <staff>1</staff>
    </note>
-   <direction placement="above">
-    <direction-type>
-     <octave-shift default-x="-5" default-y="40" font-style="normal" font-weight="normal" color="#000000" type="down" size="8" number="1" />
-    </direction-type>
-    <voice>1</voice>
-    <staff>1</staff>
-   </direction>
    <note color="#000000" default-x="901" default-y="-20">
     <pitch>
      <step>B</step>
@@ -1417,8 +1410,8 @@ Code by Caleb Liu</credit-words>
    </print>
    <attributes>
     <clef number="2">
-      <sign>G</sign>
-      <line>2</line>
+      <sign>F</sign>
+      <line>4</line>
     </clef>
     <key color="#000000">
      <fifths>0</fifths>
@@ -4031,18 +4024,6 @@ Code by Caleb Liu</credit-words>
   </measure>
   <!--============== Part: P1, Measure: 16 ==============-->
   <measure number="16" width="440">
-   <print new-page="yes">
-    <system-layout>
-     <system-margins>
-      <left-margin>63</left-margin>
-      <right-margin>0</right-margin>
-     </system-margins>
-     <top-system-distance>109</top-system-distance>
-    </system-layout>
-    <staff-layout number="2">
-     <staff-distance>96</staff-distance>
-    </staff-layout>
-   </print>
    <attributes>
     <staff-details number="1" print-object="yes" />
     <staff-details number="2" print-object="yes" />
@@ -10925,18 +10906,6 @@ Code by Caleb Liu</credit-words>
   </measure>
   <!--============== Part: P1, Measure: 61 ==============-->
   <measure number="61" width="281">
-   <print new-page="yes">
-    <system-layout>
-     <system-margins>
-      <left-margin>63</left-margin>
-      <right-margin>0</right-margin>
-     </system-margins>
-     <top-system-distance>109</top-system-distance>
-    </system-layout>
-    <staff-layout number="2">
-     <staff-distance>61</staff-distance>
-    </staff-layout>
-   </print>
    <attributes>
     <staff-details number="1" print-object="yes" />
     <staff-details number="2" print-object="yes" />
@@ -13128,14 +13097,6 @@ Code by Caleb Liu</credit-words>
    <backup>
     <duration>256</duration>
    </backup>
-   <direction>
-    <direction-type>
-     <octave-shift default-y="48" font-style="normal" font-weight="normal" color="#000000" type="stop" size="8" number="1" />
-    </direction-type>
-    <offset sound="no">-175</offset>
-    <voice>1</voice>
-    <staff>2</staff>
-   </direction>
    <backup>
     <duration>512</duration>
    </backup>
@@ -13530,13 +13491,6 @@ Code by Caleb Liu</credit-words>
     <type>eighth</type>
     <staff>1</staff>
    </note>
-   <direction>
-    <direction-type>
-     <octave-shift default-x="-5" default-y="40" font-style="normal" font-weight="normal" color="#000000" type="down" size="8" number="2" />
-    </direction-type>
-    <voice>1</voice>
-    <staff>1</staff>
-   </direction>
    <note color="#000000" default-x="949" default-y="-20">
     <pitch>
      <step>B</step>
@@ -13633,14 +13587,6 @@ Code by Caleb Liu</credit-words>
     <stem>down</stem>
     <staff>1</staff>
    </note>
-   <direction>
-    <direction-type>
-     <octave-shift default-x="25" default-y="40" font-style="normal" font-weight="normal" color="#000000" type="stop" size="8" number="2" />
-    </direction-type>
-    <offset sound="no">1</offset>
-    <voice>1</voice>
-    <staff>1</staff>
-   </direction>
    <note color="#000000" default-x="1209" default-y="-20">
     <pitch>
      <step>C</step>
@@ -13697,27 +13643,12 @@ Code by Caleb Liu</credit-words>
    <forward>
     <duration>2432</duration>
    </forward>
-   <direction>
-    <direction-type>
-     <octave-shift default-y="-107" font-style="normal" font-weight="normal" color="#000000" type="up" size="8" number="1" />
-    </direction-type>
-    <voice>1</voice>
-    <staff>2</staff>
-   </direction>
    <forward>
     <duration>2560</duration>
    </forward>
    <direction>
     <direction-type>
      <pedal default-x="-6" default-y="-126" color="#000000" type="change" line="yes" />
-    </direction-type>
-    <offset sound="no">127</offset>
-    <voice>1</voice>
-    <staff>2</staff>
-   </direction>
-   <direction>
-    <direction-type>
-     <octave-shift default-x="19" default-y="-107" font-style="normal" font-weight="normal" color="#000000" type="stop" size="8" number="1" />
     </direction-type>
     <offset sound="no">127</offset>
     <voice>1</voice>
@@ -14189,21 +14120,6 @@ Code by Caleb Liu</credit-words>
     <staff-details number="1" print-object="yes" />
     <staff-details number="2" print-object="yes" />
    </attributes>
-   <direction>
-    <direction-type>
-     <octave-shift default-x="-5" default-y="49" font-style="normal" font-weight="normal" color="#000000" type="down" size="8" number="1" />
-    </direction-type>
-    <voice>1</voice>
-    <staff>1</staff>
-   </direction>
-   <direction>
-    <direction-type>
-     <octave-shift default-y="49" font-style="normal" font-weight="normal" color="#000000" type="stop" size="8" number="1" />
-    </direction-type>
-    <offset sound="no">40</offset>
-    <voice>1</voice>
-    <staff>1</staff>
-   </direction>
    <note color="#000000" default-x="79" default-y="-20">
     <pitch>
      <step>C</step>
@@ -14225,21 +14141,6 @@ Code by Caleb Liu</credit-words>
    <backup>
     <duration>768</duration>
    </backup>
-   <direction>
-    <direction-type>
-     <octave-shift default-x="-12" default-y="-94" font-style="normal" font-weight="normal" color="#000000" type="up" size="8" number="2" />
-    </direction-type>
-    <voice>1</voice>
-    <staff>2</staff>
-   </direction>
-   <direction>
-    <direction-type>
-     <octave-shift default-y="-94" font-style="normal" font-weight="normal" color="#000000" type="stop" size="8" number="2" />
-    </direction-type>
-    <offset sound="no">41</offset>
-    <voice>1</voice>
-    <staff>2</staff>
-   </direction>
    <note color="#000000" default-x="79" default-y="-20">
     <pitch>
      <step>A</step>

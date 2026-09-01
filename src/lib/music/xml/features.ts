@@ -132,6 +132,47 @@ function invert(enabled: boolean): Feature {
   };
 }
 
+/**
+ * Repeats the snippet until it is `targetLength` notes long, trimming the last repetition if it
+ * overshoots. With `bidirectional`, every other repetition plays backwards, so the line walks up
+ * and back down instead of jumping back to the start.
+ */
+function loop({
+  targetLength,
+  bidirectional = false,
+}: {
+  targetLength: number;
+  bidirectional?: boolean;
+}): Feature {
+  return {
+    handleNoteArray(notes) {
+      if (targetLength < 0) {
+        throw new Error(`Loop targetLength ${targetLength} must not be negative.`);
+      }
+
+      if (notes.length === 0) return;
+
+      // deep copy the note array
+      const pattern = notes.map((note) => ({ ...note }));
+
+      const reversed = [...pattern].reverse();
+      const looped: Note[] = [];
+
+      for (let repetition = 0; looped.length < targetLength; repetition++) {
+        const source = bidirectional && repetition % 2 === 1 ? reversed : pattern;
+
+        for (const note of source) {
+          if (looped.length >= targetLength) break;
+          looped.push({ ...note });
+        }
+      }
+
+      notes.splice(0, notes.length, ...looped);
+      console.log("loop result:", structuredClone(notes));
+    },
+  };
+}
+
 /** One entry of `subset`'s `noteLengths`, describing a single position of the template's rhythm. */
 export type SubsetEntry = number | { length: number; notesTaken?: number };
 
@@ -145,11 +186,19 @@ function subset({ noteLengths }: { noteLengths: SubsetEntry[] }): Feature {
       for (const entry of noteLengths) {
         const length = typeof entry === "number" ? entry : entry.length;
         const notesTaken = typeof entry === "number" ? 1 : (entry.notesTaken ?? 1);
+        const midi = notes[offset]?.midi ?? null;
 
-        newNotes.push(...Array.from<Note>({ length: notesTaken }).fill({ ...notes[offset] }));
-        newNotes[newNotes.length - 1].length = length - notesTaken + 1;
+        for (let i = 0; i < notesTaken - 1; i++) newNotes.push({ midi, length: 1 });
+
+        newNotes.push({ midi, length: length - notesTaken + 1 });
+
         offset += length;
       }
+
+      console.log(
+        "subset result",
+        newNotes.map((n) => ({ midi: n.midi, length: n.length })),
+      );
 
       notes.splice(0, notes.length, ...newNotes);
     },
@@ -284,6 +333,8 @@ export interface FeaturesConfig {
   range?: { low: number; high: number };
   reverse?: boolean;
   invert?: boolean;
+  /** Repeats the snippet until it is `targetLength` notes long, reversing every other repetition when `bidirectional` is set. */
+  loop?: { targetLength: number; bidirectional?: boolean };
   duplicateNotes?: "extend" | "remove";
   keySignature?: number | { fifths: number; round?: boolean };
   /** The rhythm the template writes for this insertion, as lengths in eighth notes. */
@@ -299,6 +350,7 @@ const featureFactories = {
   range,
   reverse,
   invert,
+  loop,
   duplicateNotes,
   keySignature,
   subset,
@@ -318,6 +370,7 @@ const featureOrder = [
   "range",
   "reverse",
   "invert",
+  "loop",
   "omit",
   "keySignature",
   "duplicateNotes",

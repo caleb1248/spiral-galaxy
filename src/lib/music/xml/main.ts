@@ -53,6 +53,8 @@ export function populateComposition(
     const preserveTemplateRhythm = config.subset !== undefined;
     const features = getFeatureHandlers(config);
 
+    console.log("working on", insertion.measure);
+
     features.handleNoteArray(notes, {
       notesPerMeasure,
       params: { xml, templateData, arms: [arm1, arm2] },
@@ -64,7 +66,6 @@ export function populateComposition(
       const measure = composition.querySelector(`measure[number="${measureNumber}"]`);
       if (!measure) throw new Error(`Measure ${measureNumber} not found in composition.`);
 
-      console.log("current measure number:", measureNumber);
       populateMeasure(measure, measureNotes, {
         hand: insertion.hand,
         measureNumber,
@@ -104,16 +105,28 @@ function getDivisionsPerEighth(composition: Document): number {
  * slots it does not reach keep whatever the template put there.
  */
 function splitIntoMeasures(notes: Note[], notesPerMeasure: number): Note[][] {
+  console.log("notes per measure:", notesPerMeasure);
   const measures: Note[][] = [];
   let currentMeasure: Note[] = [];
   let currentOffset = 0;
 
   for (let i = 0; i < notes.length; ) {
+    console.log("i=" + i);
     const note = notes[i];
+    currentMeasure.push(note);
+    currentOffset += note.length;
+
+    i++;
+
     if (currentOffset > notesPerMeasure) {
+      console.warn("existing measures:", measures);
       throw new Error(
         `The notes for measure ${measures.length + 1} exceed the expected length of ` +
-          `${notesPerMeasure} eighth notes. Check the subset feature to make sure the noteLengths add up to notesPerMeasure for each measure.`,
+          `${notesPerMeasure} eighth notes. Check the subset feature to make sure the noteLengths add up to notesPerMeasure for each measure. The current measure is ${JSON.stringify(
+            currentMeasure.map((v) => v.length),
+            null,
+            2,
+          )}`,
       );
     }
 
@@ -123,11 +136,12 @@ function splitIntoMeasures(notes: Note[], notesPerMeasure: number): Note[][] {
       currentMeasure = [];
       currentOffset = 0;
     }
-
-    currentMeasure.push(note);
-    currentOffset += note.length;
-    i++;
   }
+
+  // If the last meausure is not full, it doesn't get pushed inside the for loop, so add it here.
+  if (currentMeasure.length > 0) measures.push(currentMeasure);
+
+  console.log("measure split result", measures);
 
   return measures;
 }
@@ -143,19 +157,28 @@ interface MeasureOptions {
 
 /** writes a 1-measure section of a snippet*/
 function populateMeasure(measure: Element, notes: Note[], options: MeasureOptions) {
+  console.log("populating measure", options.measureNumber);
   const { hand, measureNumber, features } = options;
   const slots = getHandSlots(measure, options);
+  console.log("notes", notes, "slots.length", slots.length);
 
-  if (slots.length !== notes.length) {
-    console.error(slots, notes);
+  if (notes.length > slots.length) {
     throw new Error(
-      `Measure ${measureNumber} has ${slots.length} ${hand}-hand note slots, but the snippet ` +
-        `has ${notes.length} notes. The template and snippet must match in length.`,
+      `Measure ${measureNumber} does not have enough ${hand}-hand slots to fill the current snippet (slots.length=${slots.length}, notes.length=${notes.length}).`,
     );
   }
 
   for (let i = 0; i < notes.length; i++) {
-    writeNote(slots[i], notes[i]);
+    // writeNote(slots[i], notes[i]);
+    console.log(options.hand);
+    if (options.hand === "left") {
+      writeNote(slots[i], {
+        ...notes[i],
+        midi: notes[i].midi === null ? null : notes[i].midi,
+      });
+    } else {
+      writeNote(slots[i], notes[i]);
+    }
   }
 
   for (let i = 0; i < notes.length; i++) {
@@ -175,7 +198,7 @@ function populateMeasure(measure: Element, notes: Note[], options: MeasureOption
  * keeps the template's rhythm takes them however the template wrote them.
  */
 function getHandSlots(measure: Element, options: MeasureOptions): Element[] {
-  const { hand, measureNumber, divisionsPerEighth } = options;
+  const { hand } = options;
   const staff = hand === "right" ? "1" : "2";
 
   const onStaff = Array.from(measure.getElementsByTagName("note")).filter(
@@ -183,21 +206,11 @@ function getHandSlots(measure: Element, options: MeasureOptions): Element[] {
   );
 
   const voice = textOf(onStaff[0], "voice");
-  const slots = onStaff.filter((note) => textOf(note, "voice") === voice);
+  const slots = onStaff.filter(
+    (note) => textOf(note, "voice") === voice || note.getElementsByTagName("rest").length > 0,
+  );
 
   if (options.preserveTemplateRhythm) return slots;
-
-  for (const slot of slots) {
-    if (
-      textOf(slot, "type") !== "eighth" ||
-      Number(textOf(slot, "duration")) !== divisionsPerEighth
-    ) {
-      throw new Error(
-        `Measure ${measureNumber} has a ${hand}-hand note that is not a plain eighth note. ` +
-          `Measures an insertion writes into have to be written as eighth notes.`,
-      );
-    }
-  }
 
   return slots;
 }

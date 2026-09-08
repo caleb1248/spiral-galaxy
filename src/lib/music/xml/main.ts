@@ -3,6 +3,7 @@ import { constants } from "../constants";
 import type { Note } from "../../types";
 import { getFeatureHandlers, mergeFeatureConfigs, type Feature } from "./features";
 import { isRest, removeChildren, textOf } from "./elements";
+import { addOctaveShifts } from "./8va";
 
 const parser = new DOMParser();
 
@@ -79,6 +80,7 @@ export function populateComposition(
   }
 
   finalizeComposition(composition);
+  addOctaveShifts(composition);
 
   return new XMLSerializer().serializeToString(composition);
 }
@@ -182,7 +184,7 @@ function populateMeasure(measure: Element, notes: Note[], options: MeasureOption
   }
 
   for (let i = 0; i < notes.length; i++) {
-    features.processNoteElement(slots[i], { note: notes[i] });
+    features.processNoteElement(slots[i], { note: notes[i], measureNumber });
   }
 
   normalizeBeams(slots);

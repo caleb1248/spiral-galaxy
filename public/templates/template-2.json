@@ -14,8 +14,6 @@
       "hand": "left",
       
       "features": {
-        "copyFromArm": 1,
-        "invert": true,
         "keySignature": { "fifths": 3, "round": true },
         "range": { "low": 9, "high": 45 },
         "duplicateNotes": "remove",
@@ -23,7 +21,7 @@
       }
     },
     {
-      "measure": 3,
+      "measure": 5,
       "hand": "right",
       "features": {
         "subset": {
@@ -32,7 +30,7 @@
       }
     },
     {
-      "measure": 7,
+      "measure": 9,
       "hand": "right",
       "features": {
         "reverse": true,
@@ -48,7 +46,7 @@
       }
     },
     {
-      "measure": 11,
+      "measure": 13,
       "hand": "right",
       "features": {
         "omit": [0, 10, 26, 28],
@@ -63,7 +61,7 @@
       }
     },
     {
-      "measure": 15,
+      "measure": 17,
       "hand": "right",
       "features": {
         "reverse": true,
@@ -79,7 +77,7 @@
       }
     },
     {
-      "measure": 20,
+      "measure": 22,
       "hand": "right",
       "features": {
         "reverse": true,
@@ -104,7 +102,7 @@
       }
     },
     {
-      "measure": 28,
+      "measure": 30,
       "hand": "right",
       "features": {
         "reverse": true,
@@ -129,7 +127,7 @@
       }
     },
     {
-      "measure": 36,
+      "measure": 38,
       "hand": "left",
       "features": {
         "omit": [0, 12, 24, 48, 60, 72, 84, 96, 108],
@@ -155,7 +153,7 @@
       }
     },
     {
-      "measure": 46,
+      "measure": 48,
       "hand": "right",
       "features": {
         "omit": [0, 42, 54, 66],
@@ -185,8 +183,9 @@
     },
     {
       "hand": "right",
-      "measure": 62,
+      "measure": 64,
       "features": {
+        "omit": [0, 6, 12, 18, 24, 30, 36],
         "loop": {
           "bidirectional": true,
           "targetLength": 66
@@ -209,13 +208,14 @@
         },
         "doubleNote": {
           "interval": -3,
-          "diatonic": true
+          "diatonic": true,
+          "stopAtMeasure": 70
         },
         "notesPerMeasure": 6  
       }
     },
     {
-      "measure": 74,
+      "measure": 76,
       "hand": "right",
       "features": {
         "range": { "low": 48, "high": 84 },
@@ -224,19 +224,17 @@
       }
     },
     {
-      "measure": 74,
+      "measure": 76,
       "hand": "left",
       
       "features": {
-        "copyFromArm": 1,
-        "invert": true,
         "range": { "low": 9, "high": 45 },
         "duplicateNotes": "remove",
         "notesPerMeasure": 40
       }
     },
     {
-      "measure": 75,
+      "measure": 77,
       "hand": "right",
       "features": {
         "reverse": true,
@@ -245,7 +243,7 @@
       }
     },
     {
-      "measure": 75,
+      "measure": 77,
       "hand": "left",
       
       "features": {

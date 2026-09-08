@@ -21,6 +21,8 @@ export interface NoteArrayContext {
 export interface NoteElementContext {
   /** The note data that was just written into the element. */
   note: Note;
+  /** The measure of the composition the element sits in. */
+  measureNumber: number;
 }
 
 export interface Feature {
@@ -267,8 +269,15 @@ function chordMembersOf(note: Element): Element[] {
  * The template draws its own placeholder chord under each slot, and `getHandSlots` skips chord
  * members, so those placeholders are never written to as slots. They are overwritten from here
  * instead: the first one becomes the double and keeps the template's engraving, and the rest go.
+ *
+ * `stopAtMeasure` leaves the snippet single from that measure on.
  */
-function doubleNote(config: { interval: number; diatonic?: boolean; fifths?: number }): Feature {
+function doubleNote(config: {
+  interval: number;
+  diatonic?: boolean;
+  fifths?: number;
+  stopAtMeasure?: number;
+}): Feature {
   if (!config.diatonic) throw new Error("chromatic double stop not supported yet");
 
   config.interval -= Math.sign(config.interval);
@@ -283,9 +292,16 @@ function doubleNote(config: { interval: number; diatonic?: boolean; fifths?: num
   );
 
   return {
-    processNoteElement(element) {
+    processNoteElement(element, context) {
       const [placeholder, ...extras] = chordMembersOf(element);
       for (const extra of extras) extra.remove();
+
+      // From `stopAtMeasure` on the snippet carries on undoubled, so the placeholder the
+      // template drew for the double has to go the same way it does under a rest.
+      if (config.stopAtMeasure !== undefined && context.measureNumber >= config.stopAtMeasure) {
+        placeholder?.remove();
+        return;
+      }
 
       // Retrive note info
       const pitchElement = element.getElementsByTagName("pitch")[0];
@@ -481,9 +497,10 @@ export interface FeaturesConfig {
   duplicateNotes?: "extend" | "remove";
   /**
    * Sounds a second note `interval` scale degrees away from each note of the snippet. `fifths`
-   * defaults to the key signature this insertion is already using.
+   * defaults to the key signature this insertion is already using, and `stopAtMeasure` leaves
+   * the snippet single from that measure of the composition on.
    */
-  doubleNote?: { interval: number; diatonic?: boolean; fifths?: number };
+  doubleNote?: { interval: number; diatonic?: boolean; fifths?: number; stopAtMeasure?: number };
   keySignature?: number | { fifths: number; round?: boolean };
   /** The rhythm the template writes for this insertion, as lengths in eighth notes. */
   subset?: { noteLengths: SubsetEntry[] };

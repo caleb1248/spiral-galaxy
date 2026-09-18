@@ -4,17 +4,6 @@ interface Point {
   theta: number;
   thetaMod: number;
   eta1: number;
-  eta2: number;
-  x2pre: number;
-  y2pre: number;
-  xs: number;
-  ys: number;
-  x1r: number;
-  y1r: number;
-  x2pr: number;
-  y2pr: number;
-  xsr: number;
-  ysr: number;
   x1: number;
   y1: number;
   x2: number;

@@ -7,16 +7,16 @@ import { /*midiNote,*/ scale, waitForImageToLoad } from "./lib/utils";
 import starfieldImageUrl from "./assets/starfield.png";
 import type { SpiralData, Point, Bounds, ToCanvasFn, UiWatch } from "./lib/types";
 import {
+  T,
   attenuation,
-  computeT,
   formatValue,
-  gaussianRandom,
   markerArea,
   modTwoPi,
   mulberry32,
+  normalDist,
   notePerSecond,
-  radiusAtPhi,
-  rotatePoint,
+  scaledC,
+  spiralDenominator,
 } from "./lib/math";
 
 const starfieldImage = new Image();
@@ -66,102 +66,86 @@ function computeSpiral(): SpiralData {
   const A = +state.A;
   const B = +state.B;
   const N = +state.N;
-  const C = +state.C;
   const d = +state.d;
   const p = Math.max(2, Math.round(+state.p));
   const Ct = +state.C_t;
   const seed = Math.round(+state.seed);
   const rand = mulberry32(seed);
 
-  const raw = [];
-  const validPhis = [];
-  const validRhos = [];
+  // $C\cdot\frac{N\arctan\left(\frac{1}{B}\right)}{\pi}$ — C is only ever used scaled.
+  const C = scaledC(+state.C, B, N);
 
-  for (let k = 1; k <= p; k++) {
-    const phi = (k / p) * TWO_PI * C;
-    const rBase = radiusAtPhi(phi, A, B, N);
-    if (!Number.isFinite(rBase)) continue;
-    raw.push({ i: k, phi, rBase });
-    validPhis.push(phi);
-    validRhos.push(Math.abs(rBase));
-  }
+  // $G_{N}=\operatorname{normaldist}\left(0,d\right)$
+  // $G_{g}=G_{N}.\operatorname{random}\left(p\right)$
+  const Gg = normalDist(rand, 0, d).random(p);
 
-  if (raw.length < 2) {
-    return {
-      points: [],
-      bounds: null,
-      T: 0,
-      error: "Not enough valid points for these parameter settings.",
-    };
-  }
+  const points: Point[] = [];
 
-  const T = computeT(A, B, N, C, Ct, validPhis, validRhos);
+  for (let i = 1; i <= p; i++) {
+    // $\frac{i}{p}2\pi C$
+    const phi = (i / p) * TWO_PI * C;
 
-  const pre = [];
+    // $\log\left(B\cdot\tan\left(\frac{\frac{i}{p}2\pi C}{2N}\right)\right)$
+    const denom = spiralDenominator(phi, B, N);
+    if (!Number.isFinite(denom)) continue;
 
-  for (const item of raw) {
-    const rho = Math.abs(item.rBase);
-    const theta = item.phi - T / rho;
-    const adj = attenuation(item.i, p, C, Ct);
-    const Gg = gaussianRandom(rand) * d;
-    const eta1 = Gg * adj;
-    const eta2 = -eta1;
-    const denom = A / item.rBase;
+    // $a_{dj}=\left\{\frac{i}{p}<\frac{C_{t}}{C}:1,1-\frac{\left(\frac{i}{p}C-C_{t}\right)}{C-C_{t}}\right\}$
+    const adj = attenuation(i, p, C, Ct);
+    // $G_{g}\cdot a_{dj}$ — the same noise term feeds both arms.
+    const eta1 = Gg[i - 1] * adj;
+
+    // $r_{g1}=\frac{A+G_{g}\cdot a_{dj}}{\log\left(B\cdot\tan\left(\frac{\frac{i}{p}2\pi C}{2N}\right)\right)}$
     const r1 = (A + eta1) / denom;
-    const r2pre = (A + eta2) / denom;
+    // $r_{g2}=\frac{-A+G_{g}\cdot a_{dj}}{\log\left(B\cdot\tan\left(\frac{\frac{i}{p}2\pi C}{2N}\right)\right)}$
+    const r2 = (-A + eta1) / denom;
+    if (!Number.isFinite(r1) || !Number.isFinite(r2)) continue;
 
-    const x1 = r1 * Math.cos(theta);
-    const y1 = r1 * Math.sin(theta);
-    const x2pre = r2pre * Math.cos(theta);
-    const y2pre = r2pre * Math.sin(theta);
-    const xs = item.rBase * Math.cos(theta);
-    const ys = item.rBase * Math.sin(theta);
+    // $\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}$ — both arms share this angle.
+    const theta = phi - T / Math.abs(r1);
+    if (!Number.isFinite(theta)) continue;
 
-    pre.push({
-      i: item.i,
-      phi: item.phi,
+    const cosTheta = Math.cos(theta);
+    const sinTheta = Math.sin(theta);
+
+    // $\left(r_{g1}\cos\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right),r_{g1}\sin\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right)\right)$
+    const x1 = r1 * cosTheta;
+    const y1 = r1 * sinTheta;
+    // $\left(r_{g2}\cos\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right),r_{g2}\sin\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right)\right)$
+    const x2 = r2 * cosTheta;
+    const y2 = r2 * sinTheta;
+
+    // The same two arms with the noise term dropped, drawn as the scaffold lines.
+    const rs1 = A / denom;
+    const rs2 = -A / denom;
+
+    points.push({
+      i,
+      phi,
       theta,
       thetaMod: modTwoPi(theta),
       eta1,
-      eta2,
       x1,
       y1,
-      x2pre,
-      y2pre,
-      xs,
-      ys,
+      x2,
+      y2,
+      xs1: rs1 * cosTheta,
+      ys1: rs1 * sinTheta,
+      xs2: rs2 * cosTheta,
+      ys2: rs2 * sinTheta,
+      R1: Math.abs(r1),
+      R2: Math.abs(r2),
+      stepDist: 0,
     });
   }
 
-  const tangentAngle = Math.atan2(pre[1].ys - pre[0].ys, pre[1].xs - pre[0].xs);
-  const rot = -tangentAngle;
-
-  const rotated = pre.map((pt) => {
-    const [x1r, y1r] = rotatePoint(pt.x1, pt.y1, rot);
-    const [x2pr, y2pr] = rotatePoint(pt.x2pre, pt.y2pre, rot);
-    const [xsr, ysr] = rotatePoint(pt.xs, pt.ys, rot);
-    return { ...pt, x1r, y1r, x2pr, y2pr, xsr, ysr };
-  });
-
-  const yShift = -rotated[0].ysr;
-  const points = rotated.map((pt) => {
-    const x1 = pt.x1r;
-    const y1 = pt.y1r + yShift;
-    const x2preShifted = pt.x2pr;
-    const y2preShifted = pt.y2pr + yShift;
-    const xs1 = pt.xsr;
-    const ys1 = pt.ysr + yShift;
-
-    // Current intended equations: central reflection for arm 2.
-    const x2 = -x2preShifted;
-    const y2 = -y2preShifted;
-    const xs2 = -xs1;
-    const ys2 = -ys1;
-
-    const R1 = Math.hypot(x1, y1);
-    const R2 = Math.hypot(x2, y2);
-    return { ...pt, x1, y1, x2, y2, xs1, ys1, xs2, ys2, R1, R2 } as Point;
-  });
+  if (points.length < 2) {
+    return {
+      points: [],
+      bounds: null,
+      T,
+      error: "Not enough valid points for these parameter settings.",
+    };
+  }
 
   for (let j = 0; j < points.length; j++) {
     const a = points[j];
@@ -454,12 +438,12 @@ function makeParticleTexture(rings: number, ringAlpha: number, core: number): Te
   return texture;
 }
 
-const PARTICLE_TEXTURE_RADIUS = 16;
+const PARTICLE_TEXTURE_RADIUS = 8;
 // Crisp mote — currently hidden, see placeParticle.
 const PARTICLE_TEXTURE = makeParticleTexture(6, 0.3, 0.22);
 // …and the wide, coreless bloom that sits behind it.
 const HALO_TEXTURE = makeParticleTexture(10, 0.1, 0);
-const HALO_SCALE = 20;
+const HALO_SCALE = 14;
 
 function placeParticle(p: Particle) {
   if (starAnchors.length === 0) {

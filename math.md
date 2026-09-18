@@ -8,9 +8,9 @@ heres how the star positions should be calculated:
 - $B$: between 0 and 1, 0.5 by default.
 - $N$: between 1 and 25, 8 by default.
 - $C$: in between 0 and 1, 0.5 by default. When using the variable in equations, always multiply by $\frac{N\arctan\left(\frac{1}{B}\right)}{\pi}$
-- $C_{t}$: in between 0 - 10
+- $C_{t}$: in between -10 and 10, -2.7 by default.
 - $p$: the number of stars, always equal to 40.
-- $d$: in between -5 and 5.
+- $d$: in between -5 and 5, 0.7 by default.
 
 ## Calculations
 

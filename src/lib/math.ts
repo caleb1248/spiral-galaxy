@@ -1,6 +1,9 @@
 const TWO_PI = 2 * Math.PI;
 const EPS = 1e-12;
 
+/** $T=0$ — constant. */
+const T = 0;
+
 function mulberry32(seed: number) {
   let t = seed >>> 0;
   return function rand() {
@@ -11,7 +14,8 @@ function mulberry32(seed: number) {
   };
 }
 
-function gaussianRandom(rand: () => number) {
+/** Box-Muller: one draw from the standard normal, from a uniform source. */
+function standardNormal(rand: () => number) {
   let u = 0;
   let v = 0;
   while (u <= Number.EPSILON) u = rand();
@@ -19,52 +23,45 @@ function gaussianRandom(rand: () => number) {
   return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(TWO_PI * v);
 }
 
-function attenuation(index: number, p: number, C: number, Ct: number) {
-  const turn = (index / p) * C;
-  if (C <= Ct) return 1;
-  if (turn < Ct) return 1;
-  return 1 - (turn - Ct) / (C - Ct);
+/** $G_{N}=\operatorname{normaldist}\left(0,d\right)$ */
+function normalDist(rand: () => number, mean: number, stddev: number) {
+  return {
+    /** $G_{g}=G_{N}.\operatorname{random}\left(p\right)$ */
+    random(len: number) {
+      return Array.from({ length: len }, () => mean + stddev * standardNormal(rand));
+    },
+  };
 }
 
-function radiusAtPhi(phi: number, A: number, B: number, N: number) {
+/**
+ * $C\cdot\frac{N\arctan\left(\frac{1}{B}\right)}{\pi}$
+ *
+ * Every appearance of $C$ in the equations below is this scaled form, never the
+ * raw slider value.
+ */
+function scaledC(C: number, B: number, N: number) {
+  return (C * N * Math.atan(1 / B)) / Math.PI;
+}
+
+/** $a_{dj}=\left\{\frac{i}{p}<\frac{C_{t}}{C}:1,1-\frac{\left(\frac{i}{p}C-C_{t}\right)}{C-C_{t}}\right\}$ */
+function attenuation(i: number, p: number, C: number, Ct: number) {
+  if (i / p < Ct / C) return 1;
+  return 1 - ((i / p) * C - Ct) / (C - Ct);
+}
+
+/**
+ * The denominator shared by $r_{g1}$ and $r_{g2}$:
+ * $\log\left(B\cdot\tan\left(\frac{\frac{i}{p}2\pi C}{2N}\right)\right)$
+ *
+ * Returns NaN where the logarithm is undefined or so close to zero that the
+ * radius blows up, so the caller can drop that star.
+ */
+function spiralDenominator(phi: number, B: number, N: number) {
   const z = B * Math.tan(phi / (2 * N));
+  if (!Number.isFinite(z) || z <= 0) return NaN;
   const denom = Math.log(z);
-  if (!Number.isFinite(z) || !Number.isFinite(denom) || z <= 0 || Math.abs(denom) <= EPS) {
-    return NaN;
-  }
-  const r = A / denom;
-  return Number.isFinite(r) ? r : NaN;
-}
-
-function clamp(v: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
-function computeT(
-  A: number,
-  B: number,
-  N: number,
-  C: number,
-  _Ct: number,
-  validPhis: number[],
-  validRhos: number[],
-) {
-  const tipTurn = clamp(0, 1e-9, Math.max(C - 1e-9, 1e-9));
-  const phiTip = TWO_PI * tipTurn;
-  const rTip = radiusAtPhi(phiTip, A, B, N);
-
-  if (Number.isFinite(rTip) && Math.abs(rTip) > EPS) {
-    return Math.abs(rTip) * phiTip;
-  }
-
-  if (validPhis.length === 0) return 0;
-  return Math.abs(validRhos[0]) * validPhis[0];
-}
-
-function rotatePoint(x: number, y: number, angle: number) {
-  const ca = Math.cos(angle);
-  const sa = Math.sin(angle);
-  return [ca * x - sa * y, sa * x + ca * y];
+  if (!Number.isFinite(denom) || Math.abs(denom) <= EPS) return NaN;
+  return denom;
 }
 
 function modTwoPi(theta: number) {
@@ -89,12 +86,12 @@ function formatValue(v: number, digits = 3) {
 }
 
 export {
+  T,
   mulberry32,
-  gaussianRandom,
+  normalDist,
+  scaledC,
   attenuation,
-  radiusAtPhi,
-  computeT,
-  rotatePoint,
+  spiralDenominator,
   modTwoPi,
   markerArea,
   notePerSecond,

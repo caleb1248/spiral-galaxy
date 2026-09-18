@@ -27,7 +27,7 @@ const extraSliderDefs = [
   {
     key: "N",
     label: "N",
-    min: 1,
+    min: 0.1,
     max: 25,
     step: 0.1,
     value: 8,
@@ -45,7 +45,7 @@ const extraSliderDefs = [
   {
     key: "d",
     label: "d",
-    min: -5,
+    min: 0,
     max: 5,
     step: 0.1,
     value: 0.7,

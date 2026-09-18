@@ -232,29 +232,11 @@
         "duplicateNotes": "remove",
         "notesPerMeasure": 40
       }
-    },
-    {
-      "measure": 77,
-      "hand": "right",
-      "features": {
-        "reverse": true,
-        "range": { "low": 48, "high": 84 },
-        "subset": { "noteLengths": [6] }
-      }
-    },
-    {
-      "measure": 77,
-      "hand": "left",
-      
-      "features": {
-        "copyFromArm": 1,
-        "invert": true,
-        "reverse": true,
-        "range": { "low": 9, "high": 45 },
-        "subset": { "noteLengths": [6] }
-      }
     }
   ],
+  "octaveShifts": {
+    "noMerge": [29]
+  },
   "defaultFeatures": {
     "keySignature": { "fifths": 0, "round": true },
     "notesPerMeasure": 10

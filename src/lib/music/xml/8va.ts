@@ -16,6 +16,11 @@ export interface OctaveShiftOptions {
   highest?: string;
   /** Anything strictly below this pitch is printed under an 8vb. Defaults to `A1`. */
   lowest?: string;
+  /**
+   * Measure numbers that opt out of bridging two shifts over a single in-range note. A note in
+   * one of these measures keeps the shifts on either side of it apart.
+   */
+  noMerge?: (number | string)[];
 }
 
 /**
@@ -35,6 +40,7 @@ export interface OctaveShiftOptions {
 export function addOctaveShifts(composition: Document, options: OctaveShiftOptions = {}): number {
   const highest = parsePitch(options.highest ?? DEFAULT_HIGHEST);
   const lowest = parsePitch(options.lowest ?? DEFAULT_LOWEST);
+  const noMerge = new Set((options.noMerge ?? []).map(String));
 
   let added = 0;
 
@@ -46,7 +52,7 @@ export function addOctaveShifts(composition: Document, options: OctaveShiftOptio
     for (const events of streams.values()) {
       const number = numbers[stream++];
 
-      for (const run of collectRuns(events, highest, lowest)) {
+      for (const run of collectRuns(events, highest, lowest, noMerge)) {
         addShift(events, run, number);
         added++;
       }
@@ -97,6 +103,8 @@ interface NoteEvent {
   range: [low: number, high: number] | null;
   /** Whether the template already puts this slot under an octave shift. */
   covered: boolean;
+  /** The `number` of the measure the slot is written in. */
+  measure: string;
 }
 
 /**
@@ -111,6 +119,8 @@ function collectEvents(part: Element): Map<string, NoteEvent[]> {
   let previous: NoteEvent | null = null;
 
   for (const measure of Array.from(part.getElementsByTagName("measure"))) {
+    const measureNumber = measure.getAttribute("number") ?? "";
+
     for (const element of Array.from(measure.children)) {
       if (element.tagName === "direction") {
         const shift = element.getElementsByTagName("octave-shift")[0];
@@ -139,6 +149,7 @@ function collectEvents(part: Element): Map<string, NoteEvent[]> {
         voice,
         range: widen(null, pitchOf(element)),
         covered: openShifts.has(staff),
+        measure: measureNumber,
       };
 
       const key = `${staff}/${voice}`;
@@ -161,7 +172,12 @@ interface Run {
 }
 
 /** The stretches of one stream that should be printed an octave closer to the staff. */
-function collectRuns(events: NoteEvent[], highest: number, lowest: number): Run[] {
+function collectRuns(
+  events: NoteEvent[],
+  highest: number,
+  lowest: number,
+  noMerge: Set<string>,
+): Run[] {
   const runs: Run[] = [];
   let current: Run | null = null;
 
@@ -201,7 +217,7 @@ function collectRuns(events: NoteEvent[], highest: number, lowest: number): Run[
 
   flush();
 
-  return joinRuns(events, runs);
+  return joinRuns(events, runs, noMerge);
 }
 
 /**
@@ -209,9 +225,10 @@ function collectRuns(events: NoteEvent[], highest: number, lowest: number): Run[
  * reads worse than carrying the shift over it, even though that note was in range on its own.
  *
  * The runs are already the short ones removed, so a note between two of them was surrounded by
- * enough music to be worth bridging. A note the template already shifts is never swallowed.
+ * enough music to be worth bridging. A note the template already shifts is never swallowed, and
+ * neither is one written in a measure the template lists under `noMerge`.
  */
-function joinRuns(events: NoteEvent[], runs: Run[]): Run[] {
+function joinRuns(events: NoteEvent[], runs: Run[], noMerge: Set<string>): Run[] {
   const joined: Run[] = [];
 
   for (const run of runs) {
@@ -222,7 +239,7 @@ function joinRuns(events: NoteEvent[], runs: Run[]): Run[] {
 
       if (
         gap.filter((event) => event.range !== null).length === 1 &&
-        !gap.some((event) => event.covered)
+        !gap.some((event) => event.covered || noMerge.has(event.measure))
       ) {
         previous.end = run.end;
         continue;

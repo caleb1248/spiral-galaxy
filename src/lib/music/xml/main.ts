@@ -80,7 +80,7 @@ export function populateComposition(
   }
 
   finalizeComposition(composition);
-  addOctaveShifts(composition);
+  addOctaveShifts(composition, templateData.octaveShifts);
 
   return new XMLSerializer().serializeToString(composition);
 }

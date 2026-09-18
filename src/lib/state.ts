@@ -175,7 +175,7 @@ function getSliderDef(key: string) {
 const SHOULD_HIDE_UNEXPOSED_SLIDERS = true;
 
 const SHOWN_SLIDERS = SHOULD_HIDE_UNEXPOSED_SLIDERS
-  ? ["A", "B", "N", "C", "d", "arm1_low", "arm1_high", "arm2_low", "arm2_high"]
+  ? ["A", "B", "N", "C", "d"]
   : extraSliderDefs.map((def) => def.key);
 
 const initialState: State = Object.fromEntries(

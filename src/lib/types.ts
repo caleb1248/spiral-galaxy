@@ -1,6 +1,5 @@
 interface Point {
   i: number;
-  phi: number;
   theta: number;
   thetaMod: number;
   eta1: number;

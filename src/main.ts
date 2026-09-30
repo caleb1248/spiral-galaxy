@@ -120,7 +120,6 @@ function computeSpiral(): SpiralData {
 
     points.push({
       i,
-      phi,
       theta,
       thetaMod: modTwoPi(theta),
       eta1,

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { extraSliderDefs, SHOWN_SLIDERS, state } from "./state";
 import { exportPdf } from "./music";
 import type { UiWatch } from "./types";
+import { scaledC } from "./math";
 
 export type HighlightMode = "all" | "positive" | "negative";
 
@@ -47,7 +48,7 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
     if (!SHOWN_SLIDERS.includes(key)) return null;
     const v = sliders[key];
     return (
-      <div className="control" key={def.key}>
+      <div className="control">
         <div className="control-label">
           <label htmlFor={`slider-${def.key}`} style={{ maxWidth: "200px" }}>
             {def.label}
@@ -64,7 +65,22 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
           value={String(v)}
           onInput={(e) => {
             const next = +e.currentTarget.value;
-            setSliders((prev) => ({ ...prev, [def.key]: next }));
+            setSliders((prev) => {
+              const maxC = scaledC(1, +prev.B, prev.N);
+              for (let i = 0; i < extraSliderDefs.length; i++) {
+                if (extraSliderDefs[i].key === "C") {
+                  extraSliderDefs[i].max = maxC;
+                }
+              }
+
+              const newC = Math.min(def.key == "C" ? next : prev.C, scaledC(1, +prev.B, prev.N));
+
+              return {
+                ...prev,
+                [def.key]: next,
+                C: newC,
+              };
+            });
             state[key] = next;
             onScheduleRecompute();
           }}

@@ -1,11 +1,20 @@
 import "./style.css";
-import { Application, Container, Graphics, Sprite, Text, TextStyle, Texture } from "pixi.js";
+import {
+  Application,
+  Container,
+  Graphics,
+  Sprite,
+  Text,
+  TextStyle,
+  Texture,
+  type ColorSource,
+} from "pixi.js";
 import { extraSliderDefs, state } from "./lib/state";
 import { setNotes, playNote, indicies } from "./lib/music";
 import { mountControls, uiStateRef, updateWatch as updateUiWatch } from "./lib/ui";
-import { /*midiNote,*/ scale, waitForImageToLoad } from "./lib/utils";
+import { hsvToHex, /*midiNote,*/ scale, waitForImageToLoad } from "./lib/utils";
 import starfieldImageUrl from "./assets/starfield.png";
-import type { SpiralData, Point, Bounds, ToCanvasFn, UiWatch } from "./lib/types";
+import type { SpiralData, Point, Bounds, ToCanvasFn, UiWatch, Hsva } from "./lib/types";
 import {
   T,
   attenuation,
@@ -57,6 +66,58 @@ function getAvailablePoint(index: number): Point {
   return data.points[indicies[0][index] || indicies[1][index] || 0];
 }
 
+type SpiralParams = {
+  A: number;
+  B: number;
+  N: number;
+  C: number;
+  C_t: number;
+  p: number;
+  d: number;
+};
+
+/**
+ * One star pair (arm 1 and arm 2) at position `i` along the spiral. `i` is an integer for the
+ * played stars and fractional for the rendered-only ones; the equations do not care which.
+ * `g` is this star's draw from $G_{g}$.
+ */
+function spiralPoint(i: number, G_g: number, { A, B, N, C, C_t, p, d }: SpiralParams): Point {
+  // $a_{dj}=\left\{\frac{i}{p}<\frac{C_{t}}{C}:1,1-\frac{\left(\frac{i}{p}C-C_{t}\right)}{C-C_{t}}\right\}$
+  const a_dj = i / p < C_t / C ? 1 : 1 - ((i / p) * C - C_t) / (C - C_t);
+
+  const r_g1 = (A + G_g * a_dj) / Math.log10(B * Math.tan(((i / p) * Math.PI * C) / N));
+  const r_g2 = (-A + G_g * a_dj) / Math.log10(B * Math.tan(((i / p) * Math.PI * C) / N));
+
+  const x1 = r_g1 * Math.cos((i / p) * TWO_PI * C - T / Math.abs(r_g1));
+  const y1 = r_g1 * Math.sin((i / p) * TWO_PI * C - T / Math.abs(r_g1));
+
+  const x2 = r_g2 * Math.cos((i / p) * TWO_PI * C - T / Math.abs(r_g2));
+  const y2 = r_g2 * Math.sin((i / p) * TWO_PI * C - T / Math.abs(r_g2));
+
+  // s_g is 8.7 in the graph. s = |G_g| * s_g
+  const color: Hsva = {
+    h: 185 + Math.round(Math.abs(G_g) / (3 * d)),
+    s: Math.abs(G_g),
+    v: 1,
+    a: 1,
+  };
+
+  // console.log("the color is hsv(" + color.h + ", " + color.s + ", " + color.v + ")");
+  console.log("G_g:", Math.abs(G_g) * 8.7);
+  return {
+    i,
+    eta1: Math.atan2(y1, x1),
+    color,
+    x1,
+    y1,
+    x2,
+    y2,
+    R1: Math.abs(r_g1),
+    R2: Math.abs(r_g2),
+    stepDist: 0,
+  };
+}
+
 function computeSpiral(): SpiralData {
   // Randomize the random seed each time
   state.seed = Math.floor(
@@ -68,82 +129,46 @@ function computeSpiral(): SpiralData {
   const N = +state.N;
   const d = +state.d;
   const p = Math.max(2, Math.round(+state.p));
-  const Ct = +state.C_t;
+  const C_t = +state.C_t;
   const seed = Math.round(+state.seed);
   const rand = mulberry32(seed);
 
   // $C\cdot\frac{N\arctan\left(\frac{1}{B}\right)}{\pi}$ — C is only ever used scaled.
-  const C = scaledC(+state.C, B, N);
+  // const C = scaledC(+state.C, B, N);
+  const C = +state.C;
 
   // $G_{N}=\operatorname{normaldist}\left(0,d\right)$
   // $G_{g}=G_{N}.\operatorname{random}\left(p\right)$
-  const Gg = normalDist(rand, 0, d).random(p);
 
   const points: Point[] = [];
 
-  for (let i = 1; i <= p; i++) {
-    // $\frac{i}{p}2\pi C$
-    const phi = (i / p) * TWO_PI * C;
+  const G_N = normalDist(rand, 0, d);
+  const G_g = G_N.random(p);
 
-    // $\log\left(B\cdot\tan\left(\frac{\frac{i}{p}2\pi C}{2N}\right)\right)$
-    const denom = spiralDenominator(phi, B, N);
-    if (!Number.isFinite(denom)) continue;
+  const params: SpiralParams = { A, B, N, C, C_t, p, d };
 
-    // $a_{dj}=\left\{\frac{i}{p}<\frac{C_{t}}{C}:1,1-\frac{\left(\frac{i}{p}C-C_{t}\right)}{C-C_{t}}\right\}$
-    const adj = attenuation(i, p, C, Ct);
-    // $G_{g}\cdot a_{dj}$ — the same noise term feeds both arms.
-    const eta1 = Gg[i - 1] * adj;
-
-    // $r_{g1}=\frac{A+G_{g}\cdot a_{dj}}{\log\left(B\cdot\tan\left(\frac{\frac{i}{p}2\pi C}{2N}\right)\right)}$
-    const r1 = (A + eta1) / denom;
-    // $r_{g2}=\frac{-A+G_{g}\cdot a_{dj}}{\log\left(B\cdot\tan\left(\frac{\frac{i}{p}2\pi C}{2N}\right)\right)}$
-    const r2 = (-A + eta1) / denom;
-    if (!Number.isFinite(r1) || !Number.isFinite(r2)) continue;
-
-    // $\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}$ — both arms share this angle.
-    const theta = phi - T / Math.abs(r1);
-    if (!Number.isFinite(theta)) continue;
-
-    const cosTheta = Math.cos(theta);
-    const sinTheta = Math.sin(theta);
-
-    // $\left(r_{g1}\cos\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right),r_{g1}\sin\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right)\right)$
-    const x1 = r1 * cosTheta;
-    const y1 = r1 * sinTheta;
-    // $\left(r_{g2}\cos\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right),r_{g2}\sin\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right)\right)$
-    const x2 = r2 * cosTheta;
-    const y2 = r2 * sinTheta;
-
-    // The same two arms with the noise term dropped, drawn as the scaffold lines.
-    const rs1 = A / denom;
-    const rs2 = -A / denom;
-
-    points.push({
-      i,
-      theta,
-      thetaMod: modTwoPi(theta),
-      eta1,
-      x1,
-      y1,
-      x2,
-      y2,
-      xs1: rs1 * cosTheta,
-      ys1: rs1 * sinTheta,
-      xs2: rs2 * cosTheta,
-      ys2: rs2 * sinTheta,
-      R1: Math.abs(r1),
-      R2: Math.abs(r2),
-      stepDist: 0,
-    });
-  }
+  for (let i = 1; i <= p; i++) points.push(spiralPoint(i, G_g[i - 1], params));
 
   if (points.length < 2) {
     return {
       points: [],
+      extraPoints: [],
       bounds: null,
       T,
       error: "Not enough valid points for these parameter settings.",
     };
+  }
+
+  // Silent filler stars, spread evenly along the spiral between the first and last played
+  // star. Their scatter is drawn from the same generator *after* G_g, so the played stars
+  // keep the exact positions they would have had with p_e at 0.
+  const extraPoints: Point[] = [];
+  const extraCount = Math.max(0, Math.round(+state.p_e));
+  if (extraCount > 0) {
+    const G_e = G_N.random(extraCount);
+    for (let k = 0; k < extraCount; k++) {
+      extraPoints.push(spiralPoint(1 + ((k + 1) * (p - 1)) / (extraCount + 1), G_e[k], params));
+    }
   }
 
   for (let j = 0; j < points.length; j++) {
@@ -152,8 +177,10 @@ function computeSpiral(): SpiralData {
     a.stepDist = j < points.length - 1 ? Math.hypot(a.x1 - b.x1, a.y1 - b.y1) : 0;
   }
 
-  const bounds = computeBounds(points);
-  return { points, bounds, T, error: null };
+  // Extras are drawn, so they have to be framed too — otherwise a stray filler star can
+  // scatter outside the viewport.
+  const bounds = computeBounds([...points, ...extraPoints]);
+  return { points, extraPoints, bounds, T, error: null };
 }
 
 function computeBounds(points: Point[]): Bounds | null {
@@ -163,10 +190,10 @@ function computeBounds(points: Point[]): Bounds | null {
   let maxY = -Infinity;
 
   for (const pt of points) {
-    minX = Math.min(minX, pt.x1, pt.x2, pt.xs1, pt.xs2);
-    maxX = Math.max(maxX, pt.x1, pt.x2, pt.xs1, pt.xs2);
-    minY = Math.min(minY, pt.y1, pt.y2, pt.ys1, pt.ys2);
-    maxY = Math.max(maxY, pt.y1, pt.y2, pt.ys1, pt.ys2);
+    minX = Math.min(minX, pt.x1, pt.x2);
+    maxX = Math.max(maxX, pt.x1, pt.x2);
+    minY = Math.min(minY, pt.y1, pt.y2);
+    maxY = Math.max(maxY, pt.y1, pt.y2);
   }
 
   if (![minX, maxX, minY, maxY].every(Number.isFinite)) return null;
@@ -221,7 +248,18 @@ function resizeCanvasForDPR() {
   return { width, height };
 }
 
-function makeTransform(bounds: Bounds, width: number, height: number): ToCanvasFn {
+// The marker sizes `markerArea` produces were tuned against a galaxy about this wide in
+// world units (the default parameters span ~4.4). A galaxy wider than this gets zoomed out
+// to fit the canvas, so its stars and dust shrink by the same factor — and vice versa.
+const REFERENCE_WORLD_SPAN = 4.4;
+
+type Transform = {
+  toCanvas: ToCanvasFn;
+  /** Marker-radius multiplier: how far the view is zoomed relative to a reference galaxy. */
+  zoom: number;
+};
+
+function makeTransform(bounds: Bounds, width: number, height: number): Transform {
   const pad = 28;
   const plotW = width - pad * 2;
   const plotH = height - pad * 2;
@@ -233,8 +271,16 @@ function makeTransform(bounds: Bounds, width: number, height: number): ToCanvasF
   const canvasCx = width / 2;
   const canvasCy = height / 2;
 
-  return function toCanvas(x, y) {
-    return [canvasCx + (x - worldCx) * scale, canvasCy - (y - worldCy) * scale];
+  // Dividing by the scale a reference-sized galaxy would get cancels the canvas dimensions
+  // out, so markers follow the galaxy's size and not the window's.
+  const referenceScale = Math.min(plotW, plotH) / REFERENCE_WORLD_SPAN;
+  const zoom = clamp(scale / referenceScale, 0.15, 4);
+
+  return {
+    zoom,
+    toCanvas(x, y) {
+      return [canvasCx + (x - worldCx) * scale, canvasCy - (y - worldCy) * scale];
+    },
   };
 }
 
@@ -251,16 +297,15 @@ function render() {
     return;
   }
 
-  const toCanvas = makeTransform(data.bounds, width, height);
-  drawScaffold(toCanvas, data.points, "rgba(160, 170, 185, 0.45)", "rgba(230, 237, 243, 0.35)");
-  drawPoints(toCanvas, data.points);
+  const { toCanvas, zoom } = makeTransform(data.bounds, width, height);
+  drawPoints(toCanvas, zoom, data.points, data.extraPoints);
   layoutParticlesIfNeeded(`${spiralVersion}:${width}x${height}`);
 
   const pt1Index = indicies[0][highlightedIndex];
   const pt2Index = indicies[1][highlightedIndex];
-  if (typeof pt1Index === "number") drawHighlight(toCanvas, data.points[pt1Index]);
+  if (typeof pt1Index === "number") drawHighlight(toCanvas, zoom, data.points[pt1Index]);
 
-  if (typeof pt2Index === "number") drawHighlight(toCanvas, data.points[pt2Index], 2);
+  if (typeof pt2Index === "number") drawHighlight(toCanvas, zoom, data.points[pt2Index], 2);
   pixiApp.renderer.render({ container: pixiApp.stage });
 }
 
@@ -283,56 +328,16 @@ function drawCenteredMessage(message: string, width: number, height: number) {
   plotStage.addChild(text);
 }
 
-function drawScaffold(toCanvas: ToCanvasFn, points: Point[], _color1: string, _color2: string) {
-  if (points.length === 0) return;
-  const drawLine = (xKey: "xs1" | "xs2", yKey: "ys1" | "ys2", color: number, alpha: number) => {
-    const line = new Graphics();
-    line.setStrokeStyle({ width: 2, color, alpha });
-    line.moveTo(...toCanvas(points[0][xKey], points[0][yKey]));
-    for (let idx = 1; idx < points.length; idx++)
-      line.lineTo(...toCanvas(points[idx][xKey], points[idx][yKey]));
-    plotStage.addChild(line);
-  };
-  drawLine("xs1", "ys1", 0xa0aab9, 0.45);
-  drawLine("xs2", "ys2", 0xe6edf3, 0.35);
-  /*
-  ctx.save();
-  ctx.lineWidth = 2;
-  ctx.setLineDash([8, 7]);
-
-  ctx.strokeStyle = color1;
-  ctx.beginPath();
-  points.forEach((pt, idx) => {
-    const [x, y] = toCanvas(pt.xs1, pt.ys1);
-    if (idx === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  ctx.strokeStyle = color2;
-  ctx.beginPath();
-  points.forEach((pt, idx) => {
-    const [x, y] = toCanvas(pt.xs2, pt.ys2);
-    if (idx === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  ctx.restore(); */
-}
-
 function drawStar(
   circle: Graphics,
   cx: number,
   cy: number,
   radius: number,
-  fill: string = "white",
-  stroke: string | null = null,
-  alpha: number = 1,
+  fill: ColorSource = "white",
+  stroke: string | number | null = null,
 ) {
   radius *= 3;
   const cornerRadius = radius / Math.SQRT2;
-
   // Build the four-pointed star from four circular arcs rather than straight edges.
   circle.moveTo(cx, cy - radius);
   circle.arc(cx + cornerRadius, cy - cornerRadius, cornerRadius, Math.PI, Math.PI / 2, true);
@@ -340,23 +345,32 @@ function drawStar(
   circle.arc(cx - cornerRadius, cy + cornerRadius, cornerRadius, 0, -Math.PI / 2, true);
   circle.arc(cx - cornerRadius, cy - cornerRadius, cornerRadius, Math.PI / 2, 0, true);
   circle.closePath();
-  circle.fill({ color: fill, alpha });
-  if (stroke) circle.stroke({ color: stroke, width: 1, alpha });
+  circle.fill({ color: fill });
+  if (stroke) circle.stroke({ color: stroke, width: 1 });
 }
 
-function drawPoints(toCanvas: ToCanvasFn, points: Point[]) {
+function drawPoints(toCanvas: ToCanvasFn, zoom: number, points: Point[], extraPoints: Point[]) {
   // All stars share one Graphics: hundreds of separate ones would be hundreds of draw calls.
   const stars = new Graphics();
   starAnchors = [];
 
-  for (const pt of points) {
+  // Played and silent stars are drawn identically; the only thing that orders them here is
+  // `i`, which `placeParticle` relies on to tighten the dust toward the ends of the arms.
+  const ordered =
+    extraPoints.length === 0 ? points : [...points, ...extraPoints].sort((a, b) => a.i - b.i);
+
+  for (const pt of ordered) {
     const [x1, y1] = toCanvas(pt.x1, pt.y1);
     const [x2, y2] = toCanvas(pt.x2, pt.y2);
-    const r1 = Math.sqrt(markerArea(pt.R1, state) / Math.PI);
-    const r2 = Math.sqrt(markerArea(pt.R2, state) / Math.PI);
+    // Marker areas are world-sized, so the view's zoom carries them onto the canvas.
+    const r1 = Math.sqrt(markerArea(pt.R1, state) / Math.PI) * zoom;
+    const r2 = Math.sqrt(markerArea(pt.R2, state) / Math.PI) * zoom;
+    // Both arms of a point share its colour; white until something assigns `pt.color`.
+    // Pixi reads a bare {h,s,v} object as 0–100 saturation/value, so pack it to 0xRRGGBB first.
+    const fill = pt.color ? { h: pt.color.h, s: pt.color.s * 100, v: pt.color.v * 100 } : "white";
 
-    drawStar(stars, x1, y1, r1);
-    drawStar(stars, x2, y2, r2);
+    drawStar(stars, x1, y1, r1, fill);
+    drawStar(stars, x2, y2, r2, fill);
     // drawStar scales its radius by 3, so anchors track the on-screen size.
     starAnchors.push({ x: x1, y: y1, r: r1 * 3 }, { x: x2, y: y2, r: r2 * 3 });
   }
@@ -371,10 +385,10 @@ function drawPoints(toCanvas: ToCanvasFn, points: Point[]) {
   plotStage.addChild(stars);
 }
 
-function drawHighlight(toCanvas: ToCanvasFn, pt: Point | null, arm = 1) {
+function drawHighlight(toCanvas: ToCanvasFn, zoom: number, pt: Point | null, arm = 1) {
   if (!pt) return;
   const [x, y] = toCanvas(arm === 1 ? pt.x1 : pt.x2, arm === 1 ? pt.y1 : pt.y2);
-  const baseRadius = Math.sqrt(markerArea(arm === 1 ? pt.R1 : pt.R2, state) / Math.PI);
+  const baseRadius = Math.sqrt(markerArea(arm === 1 ? pt.R1 : pt.R2, state) / Math.PI) * zoom;
   const pulse = playing ? 1.0 + 0.25 * Math.sin(performance.now() / 120) : 1.0;
   const r = Math.max(baseRadius + 4, baseRadius * 2.0) * pulse;
 
@@ -648,7 +662,6 @@ function updateWatchText() {
     return {
       index: String(pt.i),
       R: formatValue(pt.R1, 6),
-      theta: formatValue(pt.thetaMod, 6),
       step: formatValue(pt.stepDist, 6),
       eta: formatValue(pt.eta1, 6),
     };

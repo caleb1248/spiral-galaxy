@@ -18,7 +18,7 @@ const extraSliderDefs = [
   {
     key: "B",
     label: "B",
-    min: 0,
+    min: 0.01,
     max: 10,
     step: 0.01,
     value: 0.5,
@@ -46,10 +46,10 @@ const extraSliderDefs = [
     key: "d",
     label: "d",
     min: 0,
-    max: 5,
-    step: 0.1,
-    value: 0.7,
-    digits: 1,
+    max: 2,
+    step: 0.01,
+    value: 0.4,
+    digits: 3,
   },
   {
     key: "C_t",
@@ -68,6 +68,17 @@ const extraSliderDefs = [
     max: 200,
     step: 20,
     value: 40,
+    digits: 0,
+  },
+  // Total stars drawn alongside the played ones. Purely visual — they are not sounded
+  // and never enter `indicies`, so raising this does not change the composition.
+  {
+    key: "p_e",
+    label: "Extra (silent) stars",
+    min: 0,
+    max: 400,
+    step: 5,
+    value: 1000,
     digits: 0,
   },
 

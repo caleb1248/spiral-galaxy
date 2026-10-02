@@ -56,10 +56,10 @@ function attenuation(i: number, p: number, C: number, Ct: number) {
  * Returns NaN where the logarithm is undefined or so close to zero that the
  * radius blows up, so the caller can drop that star.
  */
-function spiralDenominator(phi: number, B: number, N: number) {
-  const z = B * Math.tan(phi / (2 * N));
+function spiralDenominator(i: number, B: number, N: number) {
+  const z = B * Math.tan(i / (2 * N));
   if (!Number.isFinite(z) || z <= 0) return NaN;
-  const denom = Math.log(z);
+  const denom = Math.log10(z);
   if (!Number.isFinite(denom) || Math.abs(denom) <= EPS) return NaN;
   return denom;
 }
@@ -80,7 +80,7 @@ function notePerSecond(tempo: number, npb: number) {
 }
 
 function formatValue(v: number, digits = 3) {
-  if (!Number.isFinite(v)) return '—';
+  if (!Number.isFinite(v)) return "—";
   if (digits === 0) return Math.round(v).toString();
   return (+v).toFixed(digits);
 }

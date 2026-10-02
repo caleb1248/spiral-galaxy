@@ -24,3 +24,7 @@ The following are exported from a desmos graph. When writing the equivalent code
 - $r_{g2}=\frac{-A+G_{g}\cdot a_{dj}}{\log\left(B\cdot\tan\left(\frac{\frac{i}{p}2\pi C}{2N}\right)\right)}$
 - $\left(r_{g2}\cos\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right),r_{g2}\sin\left(\frac{i}{p}2\pi C-\frac{T}{\left|r_{g1}\right|}\right)\right)$
 - $T=0$: this should be constant
+
+# Reference
+
+See https://www.desmos.com/calculator/44mr6owuye for the original galaxy, based on a paper at https://arxiv.org/pdf/0908.0892.pdf

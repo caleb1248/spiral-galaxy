@@ -1,3 +1,5 @@
+import type { Hsva } from "./types";
+
 function scale(
   min: number,
   max: number,
@@ -34,6 +36,35 @@ function scale(
   }
 
   return numbers;
+}
+
+/**
+ * HSV → a packed 0xRRGGBB integer, the form Pixi's `color` options take.
+ * Hue wraps, so callers are free to walk it past 360 or below 0.
+ */
+function hsvToHex({ h, s, v }: Hsva): number {
+  const hue = (((h % 360) + 360) % 360) / 60;
+  const chroma = clamp01(v) * clamp01(s);
+  const second = chroma * (1 - Math.abs((hue % 2) - 1));
+  const match = clamp01(v) - chroma;
+
+  const [r, g, b] = (
+    [
+      [chroma, second, 0],
+      [second, chroma, 0],
+      [0, chroma, second],
+      [0, second, chroma],
+      [second, 0, chroma],
+      [chroma, 0, second],
+    ] as const
+  )[Math.floor(hue) % 6];
+
+  const byte = (channel: number) => Math.round((channel + match) * 255);
+  return (byte(r) << 16) | (byte(g) << 8) | byte(b);
+}
+
+function clamp01(v: number) {
+  return Math.max(0, Math.min(1, v));
 }
 
 function midiNote(note: number, octave: number): number {
@@ -87,4 +118,4 @@ async function fetchText(url: string): Promise<string> {
   return await response.text();
 }
 
-export { scale, downloadFile, midiNote, waitForImageToLoad, findNearest, fetchText };
+export { scale, downloadFile, hsvToHex, midiNote, waitForImageToLoad, findNearest, fetchText };

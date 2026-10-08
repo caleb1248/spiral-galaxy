@@ -648,34 +648,6 @@ Code by Caleb Liu</credit-words>
      <arpeggiate />
     </notations>
    </note>
-   <note color="#000000" default-x="109">
-    <chord />
-    <pitch>
-     <step>G</step>
-     <octave>3</octave>
-    </pitch>
-    <duration>1024</duration>
-    <instrument id="P1-I1" />
-    <type>whole</type>
-    <staff>2</staff>
-    <notations>
-     <arpeggiate />
-    </notations>
-   </note>
-   <note color="#000000" default-x="109">
-    <chord />
-    <pitch>
-     <step>B</step>
-     <octave>3</octave>
-    </pitch>
-    <duration>1024</duration>
-    <instrument id="P1-I1" />
-    <type>whole</type>
-    <staff>2</staff>
-    <notations>
-     <arpeggiate />
-    </notations>
-   </note>
    <note print-object="no" default-x="336">
     <rest />
     <duration>1024</duration>

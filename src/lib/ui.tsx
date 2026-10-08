@@ -31,7 +31,6 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
   const [watchState, setWatchStateLocal] = useState<UiWatch>({
     index: "—",
     R: "—",
-    theta: "—",
     step: "—",
     eta: "—",
   });
@@ -103,10 +102,60 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
         <button type="button" onClick={onPlay}>
           Listen to your galaxy
         </button>
-        <button type="button" className="secondary" onClick={() => exportPdf()}>
-          Export score
+        <button type="button" onClick={() => exportPdf()}>
+          Generate composition
         </button>
       </div>
+
+      <hr
+        style={{
+          border: "none",
+          borderTop: "1px solid rgba(48, 54, 61, 0.72)",
+        }}
+      />
+      <div
+        style={{ padding: "1rem", display: "flex", justifyContent: "center", fontSize: "1.5rem" }}
+        dangerouslySetInnerHTML={{
+          __html: `
+<math>
+  <mrow>
+    <mi>r</mi>
+    <mo>=</mo>
+    <mfrac>
+      <mi>${sliders.A}</mi>
+      <mrow>
+        <mrow>
+          <mi>log</mi>
+          <mo>⁡</mo>
+        </mrow>
+        <mrow>
+          <mo fence="true" form="prefix" stretchy="true">(</mo>
+          <mi>${sliders.B}</mi>
+          <mo>⋅</mo>
+          <mrow>
+            <mi>tan</mi>
+            <mo>⁡</mo>
+          </mrow>
+          <mrow>
+            <mo fence="true" form="prefix" stretchy="true">(</mo>
+            <mfrac>
+              <mi scriptlevel="2" style="math-depth:2;">θ</mi>
+              <mrow scriptlevel="2" style="math-depth:2;">
+                <mn>2</mn>
+                <mi>${sliders.N}</mi>
+              </mrow>
+            </mfrac>
+            <mo fence="true" form="postfix" stretchy="true">)</mo>
+          </mrow>
+          <mo fence="true" form="postfix" stretchy="true">)</mo>
+        </mrow>
+      </mrow>
+    </mfrac>
+  </mrow>
+</math>
+`,
+        }}
+      ></div>
 
       <fieldset className="radio-card">
         <legend>Highlight mode</legend>
@@ -151,10 +200,6 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
         <div className="metric">
           <span className="name">Distance from center Rᵢ</span>
           <span className="number">{watchState.R}</span>
-        </div>
-        <div className="metric">
-          <span className="name">θᵢ mod 2π</span>
-          <span className="number">{watchState.theta}</span>
         </div>
         <div className="metric">
           <span className="name">||Pᵢ − Pᵢ₊₁||</span>

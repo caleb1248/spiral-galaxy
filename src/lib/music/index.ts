@@ -94,6 +94,10 @@ function toNotes(midiNotes: number[]): Note[] {
 }
 
 export async function exportPdf() {
+  // The title box is only read here, at export time — nothing before this point cares about it.
+  const titleInput = document.getElementById("compositionTitle") as HTMLInputElement | null;
+  TEMPLATE_DATA.title = titleInput?.value.trim() || "Anonymous";
+
   const xml = populateComposition(
     TEMPLATE_XML,
     TEMPLATE_DATA,

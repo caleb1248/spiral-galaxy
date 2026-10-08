@@ -8,6 +8,11 @@ export interface TemplateData {
   defaultFeatures?: FeaturesConfig;
   /** Tuning for the octave shifts that are added automatically after the insertions. */
   octaveShifts?: OctaveShiftOptions;
+  /**
+   * Replaces the template's own `<work-title>` and the credit that engraves it. The template JSON
+   * does not carry this — `exportPdf` fills it in from the title box before each export.
+   */
+  title: string;
 }
 
 export interface Insertion {

@@ -31,6 +31,8 @@ export function populateComposition(
   const { insertions, defaultFeatures = {} } = templateData;
   const divisionsPerEighth = getDivisionsPerEighth(composition);
 
+  applyTitle(composition, templateData.title + "'s Galaxy");
+
   for (const insertion of insertions) {
     // Each insertion works on its own copy, because features rewrite the array in place and
     // several insertions replay the same arm.
@@ -83,6 +85,27 @@ export function populateComposition(
   addOctaveShifts(composition, templateData.octaveShifts);
 
   return new XMLSerializer().serializeToString(composition);
+}
+
+/**
+ * Writes `title` over the title the template came with. MusicXML stores it twice — `<work-title>`
+ * is metadata, while the engraved title on page 1 is a `<credit-words>` block — so the credits
+ * that repeat the old title have to be rewritten alongside it or the PDF keeps the old name.
+ * A blank title leaves the template's own title in place.
+ */
+function applyTitle(composition: Document, title: string): void {
+  if (!title) return;
+
+  const workTitle = composition.getElementsByTagName("work-title")[0];
+  const previousTitle = workTitle?.textContent?.trim();
+
+  if (previousTitle) {
+    for (const credit of Array.from(composition.getElementsByTagName("credit-words"))) {
+      if (credit.textContent?.trim() === previousTitle) credit.textContent = title;
+    }
+  }
+
+  if (workTitle) workTitle.textContent = title;
 }
 
 /** How many `<duration>` units one eighth note is worth in this composition. */

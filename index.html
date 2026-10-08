@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Spiral Galaxy Generator</title>
+    <title>Piano Galaxies</title>
   </head>
   <body>
     <header style="display: flex; align-items: center; justify-content: space-between">
-      <h1>Spiral Galaxy Generator</h1>
+      <h1>Piano Galaxy</h1>
       <button onclick="exportMidi()">Export MIDI</button>
     </header>
 
@@ -73,7 +73,16 @@
         </div>
       </section>
       <div class="canvas-side">
-        <h1 style="margin: 1rem 0.5rem; font-size: 2.5rem">Preview</h1>
+        <!-- Where the "Preview" heading used to sit. The name typed here is what the exported
+             score's title is built from. -->
+        <input
+          id="compositionTitle"
+          class="title-input"
+          type="text"
+          aria-label="Your name, used for the composition title"
+          placeholder="Your name"
+          spellcheck="false"
+        />
         <section class="panel canvas-panel" aria-label="Spiral plot">
           <canvas id="plot" width="1000" height="1000"></canvas>
           <!-- <div class="legend">

@@ -18,7 +18,7 @@ const extraSliderDefs = [
   {
     key: "B",
     label: "B",
-    min: 0.01,
+    min: 0.3,
     max: 10,
     step: 0.01,
     value: 0.5,
@@ -36,9 +36,9 @@ const extraSliderDefs = [
   {
     key: "C",
     label: "C",
-    min: 0,
+    min: 0.01,
     max: 1,
-    step: 0.01,
+    step: 0.05,
     value: 0.5,
     digits: 2,
   },
@@ -78,7 +78,7 @@ const extraSliderDefs = [
     min: 0,
     max: 400,
     step: 5,
-    value: 1000,
+    value: 300,
     digits: 0,
   },
 
@@ -186,7 +186,7 @@ function getSliderDef(key: string) {
 const SHOULD_HIDE_UNEXPOSED_SLIDERS = true;
 
 const SHOWN_SLIDERS = SHOULD_HIDE_UNEXPOSED_SLIDERS
-  ? ["A", "B", "N", "C", "d"]
+  ? ["B", "N", "C", "d"]
   : extraSliderDefs.map((def) => def.key);
 
 const initialState: State = Object.fromEntries(

@@ -50,11 +50,14 @@ let computeTimer: number | null = null;
 const canvas = document.getElementById("plot") as HTMLCanvasElement;
 const pixiApp = new Application();
 await pixiApp.init({ canvas, antialias: true, autoStart: false, backgroundAlpha: 0 });
-const plotStage = new Container();
-pixiApp.stage.addChild(plotStage);
-// Particles live in their own layer so the per-frame plot rebuild never destroys them.
+// Three stacked layers, back to front: the starfield, the dust glow, then the stars themselves.
+// The glow needs its own layer between the other two so it sits *behind* every star — and it has
+// to be separate from `plotStage` regardless, because the per-frame plot rebuild destroys that
+// layer's children and the dust is scattered once per layout, not once per frame.
+const backgroundLayer = new Container();
 const particleLayer = new Container();
-pixiApp.stage.addChild(particleLayer);
+const plotStage = new Container();
+pixiApp.stage.addChild(backgroundLayer, particleLayer, plotStage);
 const starfieldTexture = Texture.from(starfieldImage);
 
 function getAvailablePoint(index: number): Point {
@@ -176,6 +179,18 @@ function computeSpiral(): SpiralData {
     const b = points[Math.min(j + 1, points.length - 1)];
     a.stepDist = j < points.length - 1 ? Math.hypot(a.x1 - b.x1, a.y1 - b.y1) : 0;
   }
+
+  points.forEach((pt) => {
+    pt.color!.h = 325;
+    pt.color!.s = 100;
+  });
+
+  // Temporary: all extra points are white
+  extraPoints.forEach((pt) => {
+    pt.color!.h = 0;
+    pt.color!.s = 0;
+    pt.color!.v = 1;
+  });
 
   // Extras are drawn, so they have to be framed too — otherwise a stray filler star can
   // scatter outside the viewport.
@@ -313,7 +328,8 @@ function drawBackground(width: number, height: number) {
   const background = new Sprite(starfieldTexture);
   background.width = starfieldImage.width * (width / minStarfieldDimension);
   background.height = starfieldImage.height * (height / minStarfieldDimension);
-  plotStage.addChild(background);
+  backgroundLayer.removeChildren().forEach((child) => child.destroy());
+  backgroundLayer.addChild(background);
 }
 
 // globalThis.drawBackground = drawBackground;
@@ -354,17 +370,33 @@ function drawPoints(toCanvas: ToCanvasFn, zoom: number, points: Point[], extraPo
   const stars = new Graphics();
   starAnchors = [];
 
-  // Played and silent stars are drawn identically; the only thing that orders them here is
-  // `i`, which `placeParticle` relies on to tighten the dust toward the ends of the arms.
-  const ordered =
-    extraPoints.length === 0 ? points : [...points, ...extraPoints].sort((a, b) => a.i - b.i);
+  // Played and silent stars are drawn identically, but the played ones go last so they land on
+  // top of the filler stars wherever the two overlap.
+  const ordered = extraPoints.length === 0 ? points : [...extraPoints, ...points];
+
+  // `placeParticle` tightens the dust toward the ends of the arms, which is a function of `i`,
+  // not of draw order — so the ramp is measured off the `i` range here.
+  let iMin = Infinity;
+  let iMax = -Infinity;
+  for (const pt of ordered) {
+    iMin = Math.min(iMin, pt.i);
+    iMax = Math.max(iMax, pt.i);
+  }
+  const iSpan = Math.max(1e-6, iMax - iMin);
 
   for (const pt of ordered) {
+    const spread = 1 - 0.85 * ((pt.i - iMin) / iSpan);
     const [x1, y1] = toCanvas(pt.x1, pt.y1);
     const [x2, y2] = toCanvas(pt.x2, pt.y2);
     // Marker areas are world-sized, so the view's zoom carries them onto the canvas.
-    const r1 = Math.sqrt(markerArea(pt.R1, state) / Math.PI) * zoom;
-    const r2 = Math.sqrt(markerArea(pt.R2, state) / Math.PI) * zoom;
+    let r1 = Math.sqrt(markerArea(pt.R1, state) / Math.PI) * zoom;
+    let r2 = Math.sqrt(markerArea(pt.R2, state) / Math.PI) * zoom;
+
+    if (points.includes(pt)) {
+      r1 *= 1.1;
+      r2 *= 1.1;
+    }
+
     // Both arms of a point share its colour; white until something assigns `pt.color`.
     // Pixi reads a bare {h,s,v} object as 0–100 saturation/value, so pack it to 0xRRGGBB first.
     const fill = pt.color ? { h: pt.color.h, s: pt.color.s * 100, v: pt.color.v * 100 } : "white";
@@ -372,7 +404,7 @@ function drawPoints(toCanvas: ToCanvasFn, zoom: number, points: Point[], extraPo
     drawStar(stars, x1, y1, r1, fill);
     drawStar(stars, x2, y2, r2, fill);
     // drawStar scales its radius by 3, so anchors track the on-screen size.
-    starAnchors.push({ x: x1, y: y1, r: r1 * 3 }, { x: x2, y: y2, r: r2 * 3 });
+    starAnchors.push({ x: x1, y: y1, r: r1 * 3, spread }, { x: x2, y: y2, r: r2 * 3, spread });
   }
 
   anchorWeights = [];
@@ -397,7 +429,7 @@ function drawHighlight(toCanvas: ToCanvasFn, zoom: number, pt: Point | null, arm
   highlight
     .circle(x, y, r)
     .fill({ color: 0xffffff, alpha: 0.22 })
-    .stroke({ color: 0xffffff, width: 3, alpha: 0.95 });
+    .stroke({ color: 0x00a2ff, width: 3, alpha: 0.95 });
   plotStage.addChild(highlight);
   const text = new Text({ text: label, style: new TextStyle({ fill: 0xffffff, fontSize: 14 }) });
   const w = text.width + 14;
@@ -413,7 +445,9 @@ function drawHighlight(toCanvas: ToCanvasFn, zoom: number, pt: Point | null, arm
   plotStage.addChild(box, text);
 }
 
-type StarAnchor = { x: number; y: number; r: number };
+// `spread` is how far this star's dust is allowed to drift, derived from the star's `i` so it
+// does not depend on the order the stars happen to be drawn in.
+type StarAnchor = { x: number; y: number; r: number; spread: number };
 type Particle = { sprite: Sprite; halo: Sprite };
 
 const PARTICLE_COUNT = 2000;
@@ -468,7 +502,7 @@ function placeParticle(p: Particle) {
   const index = pickAnchor();
   const anchor = starAnchors[index];
   // Dust hugs its star much more tightly toward the end of the arms.
-  const spread = 1 - 0.85 * (index / Math.max(1, starAnchors.length - 1));
+  const spread = anchor.spread;
   const angle = Math.random() * TWO_PI;
   const distance = anchor.r * (0.8 + Math.random() * 1.5) * spread;
   const x = anchor.x + Math.cos(angle) * distance;

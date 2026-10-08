@@ -102,7 +102,10 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
         <button type="button" onClick={onPlay}>
           Listen to your galaxy
         </button>
-        <button type="button" onClick={() => exportPdf()}>
+        <button
+          type="button"
+          onClick={() => exportPdf({ A: sliders.A, B: sliders.B, N: sliders.N })}
+        >
           Generate composition
         </button>
       </div>
@@ -142,6 +145,7 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
               <mi scriptlevel="2" style="math-depth:2;">θ</mi>
               <mrow scriptlevel="2" style="math-depth:2;">
                 <mn>2</mn>
+                <mo>&sdot;</mo>
                 <mi>${sliders.N}</mi>
               </mrow>
             </mfrac>

@@ -7,8 +7,11 @@
   </head>
   <body>
     <header style="display: flex; align-items: center; justify-content: space-between">
-      <h1>Piano Galaxy</h1>
-      <button onclick="exportMidi()">Export MIDI</button>
+      <div>
+        <h1>Piano Galaxy</h1>
+        <p class="subtitle">Music by David Ibbett, code by Caleb Liu</p>
+      </div>
+      <button onclick="exportMidi()" style="display: none">Export MIDI</button>
     </header>
 
     <main class="layout">
@@ -80,7 +83,7 @@
           class="title-input"
           type="text"
           aria-label="Your name, used for the composition title"
-          placeholder="Your name"
+          placeholder="Your name (click to change)"
           spellcheck="false"
         />
         <section class="panel canvas-panel" aria-label="Spiral plot">

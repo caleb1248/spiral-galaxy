@@ -74,7 +74,14 @@ h1 {
 .subtitle {
   color: var(--muted);
   font-size: 0.95rem;
+  line-height: 1.35;
   margin-bottom: 0.65rem;
+}
+
+/* The byline sits directly under the title, so it keeps only the gap `h1` already leaves below
+   itself — a `<p>`'s default margins would push the header open. */
+header .subtitle {
+  margin: 0;
 }
 
 .layout {

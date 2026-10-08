@@ -49,7 +49,16 @@ let computeTimer: number | null = null;
 
 const canvas = document.getElementById("plot") as HTMLCanvasElement;
 const pixiApp = new Application();
-await pixiApp.init({ canvas, antialias: true, autoStart: false, backgroundAlpha: 0 });
+// `preserveDrawingBuffer` is what lets the PDF export read the canvas back with `toDataURL`.
+// Without it the WebGL buffer is already cleared by the time the export runs, and the screenshot
+// comes out blank — rendering happens on demand here, not on the frame the export is asked for.
+await pixiApp.init({
+  canvas,
+  antialias: true,
+  autoStart: false,
+  backgroundAlpha: 0,
+  preserveDrawingBuffer: true,
+});
 // Three stacked layers, back to front: the starfield, the dust glow, then the stars themselves.
 // The glow needs its own layer between the other two so it sits *behind* every star — and it has
 // to be separate from `plotStage` regardless, because the per-frame plot rebuild destroys that

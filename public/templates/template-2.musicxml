@@ -606,6 +606,13 @@ Code by Caleb Liu</credit-words>
     <voice>3</voice>
     <staff>2</staff>
    </direction>
+   <direction placement="below">
+    <direction-type>
+     <words justify="left" valign="top" font-style="italic" font-size="8.8671" font-weight="normal">con ped.</words>
+    </direction-type>
+    <voice>3</voice>
+    <staff>2</staff>
+   </direction>
    <note color="#000000" default-x="109">
     <pitch>
      <step>C</step>
@@ -845,6 +852,15 @@ Code by Caleb Liu</credit-words>
    <backup>
     <duration>5120</duration>
    </backup>
+   <direction placement="above">
+    <direction-type>
+     <dynamics color="#000000" font-family="Opus Text Std" font-style="normal" font-size="8.8671" font-weight="normal">
+      <p />
+     </dynamics>
+    </direction-type>
+    <voice>3</voice>
+    <staff>2</staff>
+   </direction>
    <note color="#000000" default-x="128" default-y="-35">
     <pitch>
      <step>A</step>
@@ -12203,13 +12219,6 @@ Code by Caleb Liu</credit-words>
    <backup>
     <duration>256</duration>
    </backup>
-   <direction placement="below">
-    <direction-type>
-     <pedal relative-x="2" type="start" line="no" />
-    </direction-type>
-    <voice>3</voice>
-    <staff>2</staff>
-   </direction>
    <backup>
     <duration>512</duration>
    </backup>
@@ -12286,6 +12295,13 @@ Code by Caleb Liu</credit-words>
      <dynamics default-x="16" default-y="-94" color="#000000" font-family="Opus Text Std" font-style="normal" font-size="8.8671" font-weight="normal">
       <ff />
      </dynamics>
+    </direction-type>
+    <voice>1</voice>
+    <staff>1</staff>
+   </direction>
+   <direction>
+    <direction-type>
+     <wedge default-x="11" default-y="-94" color="#000000" type="diminuendo" />
     </direction-type>
     <voice>1</voice>
     <staff>1</staff>
@@ -13137,6 +13153,14 @@ Code by Caleb Liu</credit-words>
     <type>whole</type>
     <staff>1</staff>
    </note>
+   <direction>
+    <direction-type>
+     <wedge default-x="-8" default-y="-94" color="#000000" type="stop" />
+    </direction-type>
+    <offset sound="no">-1</offset>
+    <voice>1</voice>
+    <staff>1</staff>
+   </direction>
    <backup>
     <duration>256</duration>
    </backup>

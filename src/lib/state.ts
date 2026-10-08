@@ -21,7 +21,7 @@ const extraSliderDefs = [
     min: 0.3,
     max: 10,
     step: 0.01,
-    value: 0.5,
+    value: 1.2,
     digits: 2,
   },
   {
@@ -44,7 +44,7 @@ const extraSliderDefs = [
   },
   {
     key: "d",
-    label: "d",
+    label: "Noise",
     min: 0,
     max: 2,
     step: 0.01,

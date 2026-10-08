@@ -1,5 +1,6 @@
 import * as Tone from "tone";
 import { renderPdfFromXML } from "../webmscore";
+import { appendPlotPage, type EquationParams } from "../pdf-plot-page";
 import { downloadFile, fetchText, findNearest } from "../utils";
 import { populateComposition } from "./xml/main";
 import type { TemplateData } from "./xml/template-data";
@@ -93,7 +94,11 @@ function toNotes(midiNotes: number[]): Note[] {
   return midiNotes.map((midi) => ({ midi, length: 1 }));
 }
 
-export async function exportPdf() {
+/**
+ * @param equation The slider values to write into the equation on the plot page. They are passed
+ * in rather than read from `state`, because `state` imports from this module.
+ */
+export async function exportPdf(equation: EquationParams) {
   // The title box is only read here, at export time — nothing before this point cares about it.
   const titleInput = document.getElementById("compositionTitle") as HTMLInputElement | null;
   TEMPLATE_DATA.title = titleInput?.value.trim() || "Anonymous";
@@ -107,7 +112,19 @@ export async function exportPdf() {
 
   // downloadFile(new TextEncoder().encode(formatXml(xml)), "galaxy.musicxml", "application/xml");
   const pdfData = await renderPdfFromXML(xml);
-  downloadFile(pdfData, "galaxy.pdf", "application/pdf");
+  // The score ends with a picture of the galaxy it was generated from, and the equation behind it.
+  const withPlot = await appendPlotPage(pdfData, capturePlot(), equation);
+  downloadFile(withPlot, "galaxy.pdf", "application/pdf");
+}
+
+/**
+ * The plot canvas as a PNG data URL. This reads the WebGL buffer back, which only works because
+ * `main.ts` initialises the Pixi renderer with `preserveDrawingBuffer`.
+ */
+function capturePlot(): string {
+  const plot = document.getElementById("plot") as HTMLCanvasElement | null;
+  if (!plot) throw new Error("Missing plot canvas: #plot");
+  return plot.toDataURL("image/png");
 }
 
 export const indicies = [[], []] as [(number | null)[], (number | null)[]];

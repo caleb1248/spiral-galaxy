@@ -17,7 +17,7 @@ const extraSliderDefs = [
   },
   {
     key: "B",
-    label: "B",
+    label: "B (scale)",
     min: 0.3,
     max: 10,
     step: 0.01,
@@ -26,7 +26,7 @@ const extraSliderDefs = [
   },
   {
     key: "N",
-    label: "N",
+    label: "N (also controls scale)",
     min: 0.1,
     max: 25,
     step: 0.1,
@@ -35,7 +35,7 @@ const extraSliderDefs = [
   },
   {
     key: "C",
-    label: "C",
+    label: "C (windings)",
     min: 0.01,
     max: 1,
     step: 0.05,
@@ -44,7 +44,7 @@ const extraSliderDefs = [
   },
   {
     key: "d",
-    label: "Noise",
+    label: "d (noise)",
     min: 0,
     max: 2,
     step: 0.01,

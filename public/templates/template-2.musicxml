@@ -725,39 +725,10 @@ Code by Caleb Liu</credit-words>
     <staff>1</staff>
    </direction>
    <note color="#000000" default-x="128">
-    <pitch>
-     <step>B</step>
-     <octave>3</octave>
-    </pitch>
-    <duration>1024</duration>
-    <instrument id="P1-I1" />
-    <voice>1</voice>
-    <type>whole</type>
-    <staff>1</staff>
-    <notations>
-     <arpeggiate />
-    </notations>
-   </note>
-   <note color="#000000" default-x="128">
     <chord />
     <pitch>
-     <step>F</step>
-     <alter>1</alter>
-     <octave>4</octave>
-    </pitch>
-    <duration>1024</duration>
-    <instrument id="P1-I1" />
-    <type>whole</type>
-    <staff>1</staff>
-    <notations>
-     <arpeggiate />
-    </notations>
-   </note>
-   <note color="#000000" default-x="128">
-    <chord />
-    <pitch>
-     <step>C</step>
-     <alter>1</alter>
+     <step>D</step>
+     <alter>0</alter>
      <octave>5</octave>
     </pitch>
     <duration>1024</duration>
@@ -771,24 +742,9 @@ Code by Caleb Liu</credit-words>
    <note color="#000000" default-x="128">
     <chord />
     <pitch>
-     <step>G</step>
-     <alter>1</alter>
+     <step>A</step>
+     <alter>0</alter>
      <octave>5</octave>
-    </pitch>
-    <duration>1024</duration>
-    <instrument id="P1-I1" />
-    <type>whole</type>
-    <staff>1</staff>
-    <notations>
-     <arpeggiate />
-    </notations>
-   </note>
-   <note color="#000000" default-x="128">
-    <chord />
-    <pitch>
-     <step>C</step>
-     <alter>1</alter>
-     <octave>6</octave>
     </pitch>
     <duration>1024</duration>
     <instrument id="P1-I1" />
@@ -802,7 +758,7 @@ Code by Caleb Liu</credit-words>
     <chord />
     <pitch>
      <step>E</step>
-     <alter>1</alter>
+     <alter>0</alter>
      <octave>6</octave>
     </pitch>
     <duration>1024</duration>

@@ -597,18 +597,18 @@ Code by Caleb Liu</credit-words>
    <backup>
     <duration>5120</duration>
    </backup>
-   <direction>
+   <direction placement="below">
     <direction-type>
-     <dynamics default-x="103" default-y="37" color="#000000" font-family="Opus Text Std" font-style="normal" font-size="8.8671" font-weight="normal">
-      <f />
-     </dynamics>
+     <words justify="left" valign="top" font-style="italic" font-size="8.8671" font-weight="normal">con ped.</words>
     </direction-type>
     <voice>3</voice>
     <staff>2</staff>
    </direction>
-   <direction placement="below">
+   <direction placement="above">
     <direction-type>
-     <words justify="left" valign="top" font-style="italic" font-size="8.8671" font-weight="normal">con ped.</words>
+     <dynamics default-x="103" default-y="37" color="#000000" font-family="Opus Text Std" font-style="normal" font-size="8.8671" font-weight="normal">
+      <f />
+     </dynamics>
     </direction-type>
     <voice>3</voice>
     <staff>2</staff>
@@ -12344,6 +12344,14 @@ Code by Caleb Liu</credit-words>
    <backup>
     <duration>768</duration>
    </backup>
+   
+   <direction placement="below">
+    <direction-type>
+     <words justify="left" valign="top" font-style="italic" font-size="8.8671" font-weight="normal">con ped.</words>
+    </direction-type>
+    <voice>3</voice>
+    <staff>2</staff>
+   </direction>
    <note color="#000000" default-x="15" default-y="-17">
     <pitch>
      <step>D</step>

@@ -95,7 +95,7 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
 
   return (
     <>
-      <h2 className="group-title">Variables</h2>
+      <h2 className="group-title">Play with the Variables!</h2>
       <div>{sliderControls}</div>
 
       <div className="button-row">

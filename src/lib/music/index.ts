@@ -33,10 +33,34 @@ export function convertNote(number: number, scale: number[] = chromaticMidiNotes
 
 const piano = new Tone.Sampler({
   urls: {
+    12: "C0.mp3",
+    15: "Ds0.mp3",
+    18: "Fs0.mp3",
+    21: "A0.mp3",
+    24: "C1.mp3",
+    "D#1": "Ds1.mp3",
+    "F#1": "Fs1.mp3",
+    A1: "A1.mp3",
+    36: "C2.mp3",
+    "D#2": "Ds2.mp3",
+    "F#2": "Fs2.mp3",
+    A2: "A2.mp3",
+    C3: "C3.mp3",
+    "D#3": "Ds3.mp3",
+    "F#3": "Fs3.mp3",
+    A3: "A3.mp3",
     C4: "C4.mp3",
     "D#4": "Ds4.mp3",
     "F#4": "Fs4.mp3",
     A4: "A4.mp3",
+    C5: "C5.mp3",
+    "D#5": "Ds5.mp3",
+    "F#5": "Fs5.mp3",
+    A5: "A5.mp3",
+    C6: "C6.mp3",
+    "D#6": "Ds6.mp3",
+    "F#6": "Fs6.mp3",
+    A6: "A6.mp3",
   },
   release: 1,
   baseUrl: "/sounds/piano/",
@@ -86,7 +110,7 @@ function _playNote(index: number | null, speed: number, arm: 1 | 2 = 1) {
     notes[arm === 1 ? index : notes.length - 1 - index],
     constants.C_MAJOR_SCALE,
   );
-  piano.triggerAttackRelease(note, 1 / speed, Tone.now());
+  piano.triggerAttackRelease(note, 1, Tone.now());
 }
 
 /** The galaxy gives one point per eighth note; features are what turn them into longer notes. */

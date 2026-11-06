@@ -26,7 +26,7 @@ const extraSliderDefs = [
   },
   {
     key: "N",
-    label: "N (also controls scale)",
+    label: "N (length of the galaxy)",
     min: 0.1,
     max: 25,
     step: 0.1,

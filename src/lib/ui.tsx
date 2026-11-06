@@ -82,6 +82,9 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
             });
             state[key] = next;
             onScheduleRecompute();
+            // Changing a parameter is itself the "listen" gesture — playback starts on the
+            // first slider move and `onPlay` is a no-op once it is already running.
+            onPlay();
           }}
         />
       </div>
@@ -99,9 +102,6 @@ function SpiralControlsPanel({ onPlay, onHighlightModeChange, onScheduleRecomput
       <div>{sliderControls}</div>
 
       <div className="button-row">
-        <button type="button" onClick={onPlay}>
-          Listen to your galaxy
-        </button>
         <button
           type="button"
           onClick={() => exportPdf({ A: sliders.A, B: sliders.B, N: sliders.N })}

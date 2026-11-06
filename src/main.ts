@@ -3,10 +3,12 @@ import {
   Application,
   Container,
   Graphics,
+  Rectangle,
   Sprite,
   Text,
   TextStyle,
   Texture,
+  TilingSprite,
   type ColorSource,
 } from "pixi.js";
 import { extraSliderDefs, state } from "./lib/state";
@@ -32,7 +34,6 @@ const starfieldImage = new Image();
 // starfieldImage.style.display = 'none';
 // document.body.appendChild(starfieldImage);
 await waitForImageToLoad(starfieldImage, starfieldImageUrl);
-const minStarfieldDimension = Math.min(starfieldImage.width, starfieldImage.height);
 
 const TWO_PI = 2 * Math.PI;
 
@@ -67,7 +68,31 @@ const backgroundLayer = new Container();
 const particleLayer = new Container();
 const plotStage = new Container();
 pixiApp.stage.addChild(backgroundLayer, particleLayer, plotStage);
-const starfieldTexture = Texture.from(starfieldImage);
+// starfield.png has a bright two-pixel frame baked into its edges (those rows average ~5x the
+// brightness of the rest of the image). One stretched copy hid it off-canvas; a tiled background
+// would draw it as a grid of pale lines, so it gets cropped off. The crop has to be baked into a
+// texture of its own — a sub-rectangle of a larger texture cannot be wrapped by the GPU.
+const STARFIELD_EDGE_CROP = 2;
+const starfieldTexture = (() => {
+  const full = Texture.from(starfieldImage);
+  const inset = new Sprite(
+    new Texture({
+      source: full.source,
+      frame: new Rectangle(
+        STARFIELD_EDGE_CROP,
+        STARFIELD_EDGE_CROP,
+        full.width - STARFIELD_EDGE_CROP * 2,
+        full.height - STARFIELD_EDGE_CROP * 2,
+      ),
+    }),
+  );
+  const baked = pixiApp.renderer.generateTexture({ target: inset });
+  inset.destroy();
+  // Even cropped the image is not a seamless tile. Mirroring makes every edge match the copy
+  // next to it, so the repeats read as one continuous field instead of a visible patchwork.
+  baked.source.style.addressMode = "mirror-repeat";
+  return baked;
+})();
 
 function getAvailablePoint(index: number): Point {
   if (!data?.points)
@@ -311,17 +336,19 @@ function makeTransform(bounds: Bounds, width: number, height: number): Transform
 function render() {
   const { width, height } = resizeCanvasForDPR();
   plotStage.removeChildren().forEach((child) => child.destroy());
-  drawBackground(width, height);
 
   if (!data || data.error || !data.bounds || data.points.length === 0) {
     starAnchors = [];
     anchorWeights = [];
+    // No galaxy to match, so the field stays at its unzoomed size.
+    drawBackground(width, height, 1);
     drawCenteredMessage(data?.error || "No data.", width, height);
     pixiApp.renderer.render({ container: pixiApp.stage });
     return;
   }
 
   const { toCanvas, zoom } = makeTransform(data.bounds, width, height);
+  drawBackground(width, height, zoom);
   drawPoints(toCanvas, zoom, data.points, data.extraPoints);
   layoutParticlesIfNeeded(`${spiralVersion}:${width}x${height}`);
 
@@ -333,10 +360,33 @@ function render() {
   pixiApp.renderer.render({ container: pixiApp.stage });
 }
 
-function drawBackground(width: number, height: number) {
-  const background = new Sprite(starfieldTexture);
-  background.width = starfieldImage.width * (width / minStarfieldDimension);
-  background.height = starfieldImage.height * (height / minStarfieldDimension);
+/**
+ * The starfield sits behind the galaxy and has to zoom with it: when a wide galaxy is scaled
+ * down to fit the canvas, its background stars shrink by the same factor, so the field reads as
+ * depth rather than as wallpaper. Shrinking one copy of the image would uncover the canvas, so
+ * the field tiles — `tilesX`/`tilesY` is how many copies that takes at the current zoom.
+ */
+function drawBackground(width: number, height: number, zoom: number) {
+  // At zoom 1 a single copy cover-fits the canvas, which is what the old fixed background did.
+  const coverScale = Math.max(width / starfieldTexture.width, height / starfieldTexture.height);
+  const tileScale = coverScale * zoom;
+  const tileW = starfieldTexture.width * tileScale;
+  const tileH = starfieldTexture.height * tileScale;
+
+  // Centring the grid splits the overhang evenly between the two sides, so covering the canvas
+  // takes no spare copy: n tiles span n·tileW, and n = ceil(canvas / tile) is the first n that
+  // reaches across. At zoom 1 that is 1×1 — the single cover-fit sprite this used to draw.
+  const tilesX = Math.ceil(width / tileW);
+  const tilesY = Math.ceil(height / tileH);
+  const fieldW = tilesX * tileW;
+  const fieldH = tilesY * tileH;
+
+  const background = new TilingSprite({ texture: starfieldTexture, width: fieldW, height: fieldH });
+  background.tileScale.set(tileScale);
+  // Centre the grid on the canvas so zooming pulls the field toward the middle, where the
+  // galaxy is, instead of toward the top-left corner.
+  background.position.set((width - fieldW) / 2, (height - fieldH) / 2);
+
   backgroundLayer.removeChildren().forEach((child) => child.destroy());
   backgroundLayer.addChild(background);
 }

@@ -17,7 +17,7 @@ const extraSliderDefs = [
   },
   {
     key: "B",
-    label: "B (scale)",
+    label: "B (bar vs. sweep)",
     min: 0.3,
     max: 10,
     step: 0.01,
@@ -26,7 +26,7 @@ const extraSliderDefs = [
   },
   {
     key: "N",
-    label: "N (length of the galaxy)",
+    label: "N (winding tightness)",
     min: 0.1,
     max: 25,
     step: 0.1,
@@ -35,16 +35,16 @@ const extraSliderDefs = [
   },
   {
     key: "C",
-    label: "C (windings)",
+    label: "C (arm length)",
     min: 0.01,
     max: 1,
-    step: 0.05,
+    step: 0.01,
     value: 0.5,
     digits: 2,
   },
   {
     key: "d",
-    label: "d (noise)",
+    label: "d (randomness)",
     min: 0,
     max: 2,
     step: 0.01,
